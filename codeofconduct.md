@@ -1,6 +1,6 @@
 # Code of conduct/Verhaltenskodex
 
-## Präambel/Preamble
+## Preamble/Präambel
 
 Ich, die Entwicklerin dieser Burp Suite-Erweiterung, verpflichte mich, die Nutzung dieser Software auf ethische und legale Weise zu fördern. Dieser Verhaltenskodex legt die Standards für die Nutzung der Erweiterung fest und betont die Bedeutung einer verantwortungsvollen und respektvollen Nutzung. Nutzer der Erweiterung sind dazu verpflichtet, sie ausschließlich für legale Zwecke zu verwenden.<br><br>
 I, the developer of this Burp Suite extension, am committed to promoting the use of this software in an ethical and legal manner. This code of conduct sets the standards for the use of the extension and emphasizes the importance of responsible and respectful use. Users of the extension are obliged to use it exclusively for legal purposes.
