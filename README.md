@@ -1,6 +1,8 @@
-# BurpSuite Extension - Content Discovery
+# BurpSuite Extension - Content Discovery/Inhaltserkennung
 
 # Description
+- A Content Discovery Extension for Burp Suite - The automated discovery of hidden directories and files on web servers to identify potential security vulnerabilities
+- Eine Inhaltserkennungs-Erweiterung für Burp Suite - Das automatisierte Auffinden verborgener Verzeichnisse und Dateien auf Webservern zur Identifizierung potenzieller Sicherheitslücken
 
 # Setup
 - Setup the python environment by providing the [jython.jar](https://www.jython.org/downloads.html) file in the 'Options' tab under 'Extender' in Burp Suite.
