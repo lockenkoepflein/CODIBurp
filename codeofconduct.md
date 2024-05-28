@@ -31,14 +31,17 @@ Beispiele für inakzeptable Nutzung:
 - **Störung von Diensten**: Verwenden der Erweiterung zum Stören oder Lahmlegen von Diensten oder Netzwerken.
 - **Illegale Aktivitäten**: Jegliche Nutzung der Erweiterung, die gegen geltende Gesetze und Vorschriften verstößt.
 
-## Durchsetzung
+## Enforcement/Durchsetzung
 
-Verstöße gegen diesen Verhaltenskodex können zu Sanktionen führen, einschließlich der Möglichkeit, die Nutzung der Erweiterung zu untersagen oder rechtliche Schritte einzuleiten. Fälle von missbräuchlicher oder illegaler Nutzung können den zuständigen Behörden gemeldet werden.
+Verstöße gegen diesen Verhaltenskodex können zu Sanktionen führen, einschließlich der Möglichkeit, die Nutzung der Erweiterung zu untersagen oder rechtliche Schritte einzuleiten. Fälle von missbräuchlicher oder illegaler Nutzung können den zuständigen Behörden gemeldet werden.<br><br>
+Violations of this Code of Conduct may result in sanctions, including the ability to prohibit the use of the extension or take legal action. Cases of misuse or illegal use can be reported to the competent authorities.
 
-## Meldung von Problemen
+## Peporting Issues/Meldung von Problemen
 
-Instanzen von inakzeptabler Nutzung oder anderen Verstößen gegen diesen Verhaltenskodex können den Projektverantwortlichen gemeldet werden. Alle Beschwerden werden geprüft und untersucht, und es wird entsprechend darauf reagiert.
+Instanzen von inakzeptabler Nutzung oder anderen Verstößen gegen diesen Verhaltenskodex können den Projektverantwortlichen gemeldet werden. Alle Beschwerden werden geprüft und untersucht, und es wird entsprechend darauf reagiert.<br><br>
+Instances of unacceptable use or other violations of this Code of Conduct may be reported to Project Owners. All complaints are examined and investigated, and responded to accordingly.
 
-## Schlussbemerkung
+## Concluding remark/Schlussbemerkung
 
-Dieser Verhaltenskodex soll sicherstellen, dass diese Erweiterung verantwortungsvoll und ethisch verwendet wird. Wir danken allen Nutzern für ihre Kooperation und ihr Engagement, diese Standards einzuhalten.
+Dieser Verhaltenskodex soll sicherstellen, dass diese Erweiterung verantwortungsvoll und ethisch verwendet wird. Wir danken allen Nutzern für ihre Kooperation und ihr Engagement, diese Standards einzuhalten.<br><br>
+This Code of Conduct is designed to ensure that this extension is used responsibly and ethically. We thank all users for their cooperation and commitment to complying with these standards.
