@@ -36,11 +36,6 @@ Beispiele für inakzeptable Nutzung:
 Verstöße gegen diesen Verhaltenskodex können zu Sanktionen führen, einschließlich der Möglichkeit, die Nutzung der Erweiterung zu untersagen oder rechtliche Schritte einzuleiten. Fälle von missbräuchlicher oder illegaler Nutzung können den zuständigen Behörden gemeldet werden.<br><br>
 Violations of this Code of Conduct may result in sanctions, including the ability to prohibit the use of the extension or take legal action. Cases of misuse or illegal use can be reported to the competent authorities.
 
-## Peporting Issues/Meldung von Problemen
-
-Instanzen von inakzeptabler Nutzung oder anderen Verstößen gegen diesen Verhaltenskodex können den Projektverantwortlichen gemeldet werden. Alle Beschwerden werden geprüft und untersucht, und es wird entsprechend darauf reagiert.<br><br>
-Instances of unacceptable use or other violations of this Code of Conduct may be reported to Project Owners. All complaints are examined and investigated, and responded to accordingly.
-
 ## Concluding remark/Schlussbemerkung
 
 Dieser Verhaltenskodex soll sicherstellen, dass diese Erweiterung verantwortungsvoll und ethisch verwendet wird. Wir danken allen Nutzern für ihre Kooperation und ihr Engagement, diese Standards einzuhalten.<br><br>
