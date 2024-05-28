@@ -11,7 +11,8 @@ A Content Discovery Extension for Burp Suite - The automated discovery of hidden
 - Download the [extension](https://github.com/lockenkoepflein/CODIBurp/filename).
 - In the 'Extensions' tab under 'Extender', select 'Add'.
 - Change the extension type to 'Python'.
-- Provide the path of the file ‘File.py’ and click on 'Next'.<br><br>- Richten Sie die Python-Umgebung ein, indem Sie die Datei [jython.jar](https://www.jython.org/downloads.html) auf der Registerkarte "Optionen" unter "Extender" in der Burp Suite bereitstellen.
+- Provide the path of the file ‘File.py’ and click on 'Next'.<br><br>
+- Richten Sie die Python-Umgebung ein, indem Sie die Datei [jython.jar](https://www.jython.org/downloads.html) auf der Registerkarte "Optionen" unter "Extender" in der Burp Suite bereitstellen.
 - Laden Sie die [Erweiterung](https://github.com/lockenkoepflein/CODIBurp/filename) herunter.
 - Wählen Sie auf der Registerkarte "Erweiterungen" unter "Extender" die Option "Hinzufügen".
 - Ändern Sie den Erweiterungstyp in "Python".
