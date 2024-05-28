@@ -1,7 +1,7 @@
 # BurpSuite Extension - Content Discovery/Inhaltserkennung
 
 ## Status
-This project is under development. Features and implementations may not yet be complete or stable.  Dieses Projekt befindet sich in der Entwicklung. Funktionen und Implementierungen sind möglicherweise noch nicht vollständig oder stabil.
+This project is under development. Features and implementations may not yet be complete or stable.<br>Dieses Projekt befindet sich in der Entwicklung. Funktionen und Implementierungen sind möglicherweise noch nicht vollständig oder stabil.
 
 ## Description/Beschreibung
 A Content Discovery Extension for Burp Suite - The automated discovery of hidden directories and files on web servers to identify potential security vulnerabilities.  Eine Inhaltserkennungs-Erweiterung für Burp Suite - Das automatisierte Auffinden verborgener Verzeichnisse und Dateien auf Webservern zur Identifizierung potenzieller Sicherheitslücken.
