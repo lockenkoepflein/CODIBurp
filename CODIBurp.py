@@ -29,7 +29,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         
     # Diese Methode lädt die SecList von einer URL und speichert sie in einer Liste
     def load_seclist(self):
-        url = 'https://github.com/lockenkoepflein/CODIBurp/blob/main/testdirectories.txt'
+        url = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/CODIBurp.py'
         try:
             response = requests.get(url)
             response.raise_for_status()  # Raise an HTTPError for bad responses
