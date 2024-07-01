@@ -1,7 +1,9 @@
-from burp import IBurpExtender, IExtensionStateListener
-from burp import IHttpListener, IHttpRequestResponse
+# Dies ist ein erster Prototyp des Codes. Dieser Code befindet sich noch in Bearbeitung und ist daher noch nicht funktional. 
+
+from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
 import sqlite3
 import requests
+from urllib.parse import urljoin
 
 class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     # Diese Methode registriert die Erweiterungs-Callbacks bei BurpSuite
