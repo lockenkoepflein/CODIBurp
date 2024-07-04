@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
-import sqlite3
 import requests
-from urllib.parse import urljoin
 import logging
+import os
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -16,18 +15,9 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         callbacks.registerHttpListener(self)
         callbacks.registerExtensionStateListener(self)
         
-        self.init_db()
+        self.directories = []
+        self.results = []
         self.load_seclist()
-        
-    # Diese Methode initialisiert die SQLite-Datenbank
-    def init_db(self):
-        try:
-            self.conn = sqlite3.connect(':memory:')  # In-memory database for simplicity
-            self.cursor = self.conn.cursor()
-            self.cursor.execute('CREATE TABLE directories (name TEXT)')
-        except sqlite3.Error as e:
-            logging.error("Database error: {}".format(e))
-            self.conn = None
         
     # Diese Methode lädt die SecList von einer URL und speichert sie in einer Liste
     def load_seclist(self):
@@ -53,36 +43,27 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))
                 
-    # Diese Methode sendet eine HTTP-Anfrage und speichert gültige Verzeichnisse in der Datenbank
+    # Diese Methode sendet eine HTTP-Anfrage und speichert gültige Verzeichnisse in einer Liste
     def send_request(self, url):
         try:
             response = requests.get(url, timeout=10)  # Timeout nach 10 Sekunden
             if response.status_code == 200:
-                self.cursor.execute('INSERT INTO directories (name) VALUES (?)', (url,))
-                self.conn.commit()
+                self.results.append(url)
                 logging.debug("Directory found: {}".format(url))
             else:
                 logging.debug("Received status code {} for URL: {}".format(response.status_code, url))
         except requests.exceptions.RequestException as e:
             logging.error("Request error for {}: {}".format(url, e))
-        except sqlite3.Error as e:
-            logging.error("Database error: {}".format(e))
             
     # Diese Methode wird aufgerufen, wenn die Erweiterung entladen wird
     def extensionUnloaded(self):
         self.save_results()
-        if self.conn:
-            self.conn.close()
         
-    # Diese Methode speichert die Ergebnisse aus der Datenbank in einer Datei
+    # Diese Methode speichert die Ergebnisse in einer Datei
     def save_results(self):
         try:
             with open('results.txt', 'w') as f:
-                self.cursor.execute('SELECT name FROM directories')
-                rows = self.cursor.fetchall()
-                for row in rows:
-                    f.write(row[0] + '\n')
-        except sqlite3.Error as e:
-            logging.error("Database error: {}".format(e))
+                for result in self.results:
+                    f.write(result + '\n')
         except IOError as e:
             logging.error("File error: {}".format(e))
