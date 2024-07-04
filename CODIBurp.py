@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
-import requests
+import urllib2
 import logging
 import os
 
@@ -23,10 +23,9 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     def load_seclist(self):
         url = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
         try:
-            response = requests.get(url)
-            response.raise_for_status()  # Raise an HTTPError for bad responses
-            self.directories = response.text.splitlines()
-        except requests.exceptions.RequestException as e:
+            response = urllib2.urlopen(url)
+            self.directories = response.read().splitlines()
+        except urllib2.URLError as e:
             logging.error("Error loading SecList: {}".format(e))
             self.directories = []  # Handle appropriately
         
@@ -46,13 +45,14 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     # Diese Methode sendet eine HTTP-Anfrage und speichert gültige Verzeichnisse in einer Liste
     def send_request(self, url):
         try:
-            response = requests.get(url, timeout=10)  # Timeout nach 10 Sekunden
-            if response.status_code == 200:
+            request = urllib2.Request(url)
+            response = urllib2.urlopen(request, timeout=10)  # Timeout nach 10 Sekunden
+            if response.getcode() == 200:
                 self.results.append(url)
                 logging.debug("Directory found: {}".format(url))
             else:
-                logging.debug("Received status code {} for URL: {}".format(response.status_code, url))
-        except requests.exceptions.RequestException as e:
+                logging.debug("Received status code {} for URL: {}".format(response.getcode(), url))
+        except urllib2.URLError as e:
             logging.error("Request error for {}: {}".format(url, e))
             
     # Diese Methode wird aufgerufen, wenn die Erweiterung entladen wird
