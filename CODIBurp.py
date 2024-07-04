@@ -3,6 +3,7 @@ from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpReq
 import urllib2
 import logging
 import os
+from urllib.parse import urljoin
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -35,9 +36,9 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             try:
                 request = self._helpers.analyzeRequest(messageInfo)
                 headers = request.getHeaders()
-                url = headers[0].split()[1]
+                base_url = headers[0].split()[1]
                 for directory in self.directories:
-                    new_url = url + directory
+                    new_url = urljoin(base_url, directory.strip())  # Strip leading/trailing spaces
                     self.send_request(new_url)
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))
