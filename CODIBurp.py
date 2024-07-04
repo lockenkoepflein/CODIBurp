@@ -1,9 +1,10 @@
-# Dies ist ein erster Prototyp des Codes. Dieser Code befindet sich noch in Bearbeitung und ist daher noch nicht funktional. 
-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
 import sqlite3
 import requests
 from urllib.parse import urljoin
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     # Diese Methode registriert die Erweiterungs-Callbacks bei BurpSuite
@@ -24,7 +25,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             self.cursor = self.conn.cursor()
             self.cursor.execute('CREATE TABLE directories (name TEXT)')
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            logging.error(f"Database error: {e}")
             self.conn = None
         
     # Diese Methode lädt die SecList von einer URL und speichert sie in einer Liste
@@ -35,7 +36,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             response.raise_for_status()  # Raise an HTTPError for bad responses
             self.directories = response.text.splitlines()
         except requests.exceptions.RequestException as e:
-            print(f"Error loading SecList: {e}")
+            logging.error(f"Error loading SecList: {e}")
             self.directories = []  # Handle appropriately
         
     # Diese Methode verarbeitet HTTP-Anfragen, um Verzeichnisscans durchzuführen
@@ -49,19 +50,22 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                     new_url = url + directory
                     self.send_request(new_url)
             except Exception as e:
-                print(f"Error processing HTTP message: {e}")
+                logging.error(f"Error processing HTTP message: {e}")
                 
     # Diese Methode sendet eine HTTP-Anfrage und speichert gültige Verzeichnisse in der Datenbank
     def send_request(self, url):
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=10)  # Timeout nach 10 Sekunden
             if response.status_code == 200:
                 self.cursor.execute('INSERT INTO directories (name) VALUES (?)', (url,))
                 self.conn.commit()
+                logging.debug(f"Directory found: {url}")
+            else:
+                logging.debug(f"Received status code {response.status_code} for URL: {url}")
         except requests.exceptions.RequestException as e:
-            print(f"Request error for {url}: {e}")
+            logging.error(f"Request error for {url}: {e}")
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            logging.error(f"Database error: {e}")
             
     # Diese Methode wird aufgerufen, wenn die Erweiterung entladen wird
     def extensionUnloaded(self):
@@ -78,6 +82,6 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 for row in rows:
                     f.write(row[0] + '\n')
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            logging.error(f"Database error: {e}")
         except IOError as e:
-            print(f"File error: {e}")
+            logging.error(f"File error: {e}")
