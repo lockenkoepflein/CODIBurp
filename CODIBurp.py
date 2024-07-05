@@ -2,6 +2,7 @@
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
 import logging
 import os
+from java.io import IOException  # Korrekter Import für Java IOException
 from java.net import URL, MalformedURLException
 
 logging.basicConfig(level=logging.DEBUG)
@@ -28,7 +29,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         except MalformedURLException as e:
             logging.error("Malformed URL error: {}".format(e))
             self.directories = []
-        except IOException as e:
+        except IOException as e:  # Hier wird IOException verwendet
             logging.error("Error loading SecList: {}".format(e))
             self.directories = []
         
