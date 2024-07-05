@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
+from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse, IHttpService
 import logging
-import os
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -20,7 +19,12 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     def load_seclist(self):
         url = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
         try:
-            response = self._callbacks.makeHttpRequest(url, None)
+            # Get the IHttpService for the URL from the current request
+            http_service = self.get_http_service_from_request()
+            
+            # Make the HTTP request to load the SecList
+            response = self._callbacks.makeHttpRequest(http_service, self._helpers.buildHttpRequest(self.get_target_url(), None))
+            
             if response.getStatusCode() == 200:
                 content = response.getResponse()
                 self.directories = content.splitlines()
@@ -32,6 +36,16 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             logging.error("Error loading SecList: %s" % str(e))
             self.directories = []
         
+    def get_http_service_from_request(self):
+        # Get the IHttpService for the URL from the current request
+        request_info = self._helpers.analyzeRequest(self._callbacks.getProxyHistory()[-1])  # Get the latest intercepted request
+        return request_info.getHttpService()
+    
+    def get_target_url(self):
+        # Get the target URL from the current request
+        request_info = self._helpers.analyzeRequest(self._callbacks.getProxyHistory()[-1])  # Get the latest intercepted request
+        return self._helpers.buildHttpService(request_info.getHost(), request_info.getPort(), request_info.getProtocol())
+    
     def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
         if messageIsRequest:
             try:
@@ -54,7 +68,10 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     
     def send_request(self, url):
         try:
-            response = self._callbacks.makeHttpRequest(url, None)
+            # Make HTTP request to the constructed URL
+            http_service = self.get_http_service_from_request()
+            response = self._callbacks.makeHttpRequest(http_service, self._helpers.buildHttpRequest(url))
+            
             if response.getStatusCode() == 200:
                 self.results.append(url)
                 logging.debug("Directory found: %s" % url)
