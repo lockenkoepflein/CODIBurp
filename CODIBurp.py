@@ -3,7 +3,7 @@ from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpReq
 import urllib2
 import logging
 import os
-from urlparse import urljoin  # In Jython, use urlparse instead of urllib.parse
+from urlparse import urljoin
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -26,6 +26,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         try:
             response = urllib2.urlopen(url)
             self.directories = response.read().splitlines()
+            logging.info("SecList loaded successfully")
         except urllib2.URLError as e:
             logging.error("Error loading SecList: {}".format(e))
             self.directories = []  # Handle appropriately
@@ -35,9 +36,10 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         if messageIsRequest:
             try:
                 request = self._helpers.analyzeRequest(messageInfo)
-                url = self._helpers.analyzeRequest(messageInfo).getUrl().toString()
+                headers = request.getHeaders()
+                base_url = headers[0].split()[1]
                 for directory in self.directories:
-                    new_url = urljoin(url, directory.strip())  # Strip leading/trailing spaces
+                    new_url = urljoin(base_url, directory.strip())  # Strip leading/trailing spaces
                     self.send_request(new_url)
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))
@@ -62,8 +64,13 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     # Diese Methode speichert die Ergebnisse in einer Datei
     def save_results(self):
         try:
-            with open('results.txt', 'w') as f:
+            # Bestimmen Sie das aktuelle Arbeitsverzeichnis
+            current_directory = os.getcwd()
+            # Dateipfad festlegen
+            file_path = os.path.join(current_directory, 'results.txt')
+            with open(file_path, 'w') as f:
                 for result in self.results:
                     f.write(result + '\n')
+            logging.info("Results saved to {}".format(file_path))
         except IOError as e:
             logging.error("File error: {}".format(e))
