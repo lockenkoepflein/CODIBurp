@@ -71,6 +71,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             with open(file_path, 'w') as f:
                 for result in self.results:
                     f.write(result + '\n')
+            # Protokollierung des Pfades der gespeicherten Datei
             logging.info("Results saved to {}".format(file_path))
         except IOError as e:
             logging.error("File error: {}".format(e))
