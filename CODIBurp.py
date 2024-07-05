@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
-import urllib2
 import logging
 import os
+import urllib2
 from urlparse import urljoin
 
 logging.basicConfig(level=logging.DEBUG)
