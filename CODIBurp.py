@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from burp import IBurpExtender, IExtensionStateListener, IHttpListener
+from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
 import logging
+from urllib.parse import urljoin
 
 class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     def registerExtenderCallbacks(self, callbacks):
@@ -46,7 +47,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 # Für jeden Verzeichnisnamen in der SecList
                 for directory in self.directories:
                     # Neue URL erstellen durch Hinzufügen des Verzeichnisnamens
-                    new_url = base_url + "/" + directory.strip().decode('utf-8')  # Strip und Decode anpassen
+                    new_url = urljoin(base_url, directory.strip().decode('utf-8'))  # Strip und Decode anpassen
                     self.send_request(new_url)  # HTTP-Anfrage senden
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))  # Fehler loggen
