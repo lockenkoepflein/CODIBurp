@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
+import urllib2
 import logging
 import os
-from java.io import IOException  # Korrekter Import für Java IOException
-from java.net import URL, MalformedURLException
+from java.io import IOException  # Import von IOException hinzugefügt
+from urllib.parse import urljoin
 
 logging.basicConfig(level=logging.DEBUG)
 
 class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
+    # Diese Methode registriert die Erweiterungs-Callbacks bei BurpSuite
     def registerExtenderCallbacks(self, callbacks):
         self._callbacks = callbacks
         self._helpers = callbacks.getHelpers()
@@ -19,61 +21,52 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         self.results = []
         self.load_seclist()
         
+    # Diese Methode lädt die SecList von einer URL und speichert sie in einer Liste
     def load_seclist(self):
         url = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
         try:
-            url_obj = URL(url)
-            input_stream = url_obj.openStream()
-            content = input_stream.read()
+            response = urllib2.urlopen(url)
+            content = str(response.read())  # Stelle sicher, dass der Inhalt als String behandelt wird
             self.directories = content.splitlines()
-        except MalformedURLException as e:
-            logging.error("Malformed URL error: {}".format(e))
-            self.directories = []
-        except IOException as e:  # Hier wird IOException verwendet
+        except IOException as e:  # IOException hier verwenden
             logging.error("Error loading SecList: {}".format(e))
-            self.directories = []
+            self.directories = []  # Handle appropriately
         
+    # Diese Methode verarbeitet HTTP-Anfragen, um Verzeichnisscans durchzuführen
     def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
         if messageIsRequest:
             try:
                 request = self._helpers.analyzeRequest(messageInfo)
                 headers = request.getHeaders()
-                if headers and len(headers) > 0:
-                    base_url = headers[0].split()[1]
-                    for directory in self.directories:
-                        new_url = self.join_url(base_url, directory.strip())
-                        self.send_request(new_url)
-                else:
-                    logging.error("Empty or invalid headers found in HTTP request")
+                base_url = headers[0].split()[1]
+                for directory in self.directories:
+                    new_url = urljoin(base_url, directory.strip())  # Strip leading/trailing spaces
+                    self.send_request(new_url)
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))
                 
-    def join_url(self, base_url, path):
-        try:
-            url = URL(base_url)
-            return URL(url, path).toString()
-        except MalformedURLException as e:
-            logging.error("Malformed URL error: {}".format(e))
-            return None
-        
+    # Diese Methode sendet eine HTTP-Anfrage und speichert gültige Verzeichnisse in einer Liste
     def send_request(self, url):
         try:
-            url_obj = URL(url)
-            connection = url_obj.openConnection()
-            connection.connectTimeout = 10000  # Timeout nach 10 Sekunden
-            connection.readTimeout = 10000  # Timeout nach 10 Sekunden
-            response_code = connection.getResponseCode()
-            if response_code == 200:
+            request = urllib2.Request(url)
+            response = urllib2.urlopen(request, timeout=10)  # Timeout nach 10 Sekunden
+            if response.getcode() == 200:
                 self.results.append(url)
                 logging.debug("Directory found: {}".format(url))
             else:
-                logging.debug("Received status code {} for URL: {}".format(response_code, url))
-        except IOException as e:
+                logging.debug("Received status code {} for URL: {}".format(response.getcode(), url))
+        except urllib2.URLError as e:
             logging.error("Request error for {}: {}".format(url, e))
             
+    # Diese Methode wird aufgerufen, wenn die Erweiterung entladen wird
     def extensionUnloaded(self):
         self.save_results()
         
+    # Diese Methode speichert die Ergebnisse in einer Datei
     def save_results(self):
-        for result in self.results:
-            logging.info("Directory found: {}".format(result))
+        try:
+            with open('results.txt', 'w') as f:
+                for result in self.results:
+                    f.write(result + '\n')
+        except IOError as e:
+            logging.error("File error: {}".format(e))
