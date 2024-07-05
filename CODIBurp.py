@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener
 import logging
 
