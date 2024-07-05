@@ -3,7 +3,7 @@ from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpReq
 import urllib2
 import logging
 import os
-import urlparse
+from urlparse import urljoin  # In Jython, use urlparse instead of urllib.parse
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -35,10 +35,9 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         if messageIsRequest:
             try:
                 request = self._helpers.analyzeRequest(messageInfo)
-                headers = request.getHeaders()
-                base_url = headers[0].split()[1]
+                url = self._helpers.analyzeRequest(messageInfo).getUrl().toString()
                 for directory in self.directories:
-                    new_url = urlparse.urljoin(base_url, directory.strip())  # Strip leading/trailing spaces
+                    new_url = urljoin(url, directory.strip())  # Strip leading/trailing spaces
                     self.send_request(new_url)
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))
@@ -60,4 +59,11 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     def extensionUnloaded(self):
         self.save_results()
         
-    # Diese
+    # Diese Methode speichert die Ergebnisse in einer Datei
+    def save_results(self):
+        try:
+            with open('results.txt', 'w') as f:
+                for result in self.results:
+                    f.write(result + '\n')
+        except IOError as e:
+            logging.error("File error: {}".format(e))
