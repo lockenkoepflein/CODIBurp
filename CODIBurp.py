@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
-import urllib2
 import logging
 import os
 
 logging.basicConfig(level=logging.DEBUG)
 
 class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
-    # Diese Methode registriert die Erweiterungs-Callbacks bei BurpSuite
     def registerExtenderCallbacks(self, callbacks):
         self._callbacks = callbacks
         self._helpers = callbacks.getHelpers()
@@ -19,17 +17,21 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         self.results = []
         self.load_seclist()
         
-    # Diese Methode lädt die SecList von einer URL und speichert sie in einer Liste
     def load_seclist(self):
         url = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
         try:
-            response = urllib2.urlopen(url)
-            self.directories = response.read().splitlines()
-        except urllib2.URLError as e:
-            logging.error("Error loading SecList: {}".format(e))
-            self.directories = []  # Handle appropriately
+            response = self._callbacks.makeHttpRequest(url, None)
+            if response.getStatusCode() == 200:
+                content = response.getResponse()
+                self.directories = content.splitlines()
+                logging.debug("SecList loaded successfully")
+            else:
+                logging.error("Failed to load SecList: HTTP %d" % response.getStatusCode())
+                self.directories = []
+        except Exception as e:
+            logging.error("Error loading SecList: %s" % str(e))
+            self.directories = []
         
-    # Diese Methode verarbeitet HTTP-Anfragen, um Verzeichnisscans durchzuführen
     def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
         if messageIsRequest:
             try:
@@ -37,37 +39,37 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 headers = request.getHeaders()
                 base_url = headers[0].split()[1]
                 for directory in self.directories:
-                    new_url = self.join_url(base_url, directory.strip())  # Strip leading/trailing spaces
+                    new_url = self.build_url(base_url, directory.strip())
                     self.send_request(new_url)
             except Exception as e:
-                logging.error("Error processing HTTP message: {}".format(e))
-                
-    # Diese Methode fügt Pfade sicher zusammen
-    def join_url(self, base_url, directory):
-        if base_url.endswith('/'):
+                logging.error("Error processing HTTP message: %s" % str(e))
+    
+    def build_url(self, base_url, directory):
+        if not base_url.startswith("http"):
+            base_url = "http://" + base_url  # prepend http if not present
+        if base_url.endswith("/"):
             return base_url + directory
         else:
-            return base_url + '/' + directory
-            
-    # Diese Methode sendet eine HTTP-Anfrage und speichert gültige Verzeichnisse in einer Liste
+            return base_url + "/" + directory
+    
     def send_request(self, url):
         try:
-            request = urllib2.Request(url)
-            response = urllib2.urlopen(request, timeout=10)  # Timeout nach 10 Sekunden
-            if response.getcode() == 200:
+            response = self._callbacks.makeHttpRequest(url, None)
+            if response.getStatusCode() == 200:
                 self.results.append(url)
-                logging.debug("Directory found: {}".format(url))
+                logging.debug("Directory found: %s" % url)
             else:
-                logging.debug("Received status code {} for URL: {}".format(response.getcode(), url))
-        except urllib2.URLError as e:
-            logging.error("Request error for {}: {}".format(url, e))
-            
-    # Diese Methode wird aufgerufen, wenn die Erweiterung entladen wird
+                logging.debug("Received status code %d for URL: %s" % (response.getStatusCode(), url))
+        except Exception as e:
+            logging.error("Request error for %s: %s" % (url, str(e)))
+    
     def extensionUnloaded(self):
         self.save_results()
-        
-    # Diese Methode speichert die Ergebnisse in der Benutzeroberfläche
+    
     def save_results(self):
-        for result in self.results:
-            print(result)
-
+        try:
+            with open('results.txt', 'w') as f:
+                for result in self.results:
+                    f.write(result + '\n')
+        except IOError as e:
+            logging.error("File error: %s" % str(e))
