@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
 import logging
-from urllib.parse import urljoin
 
 class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     def registerExtenderCallbacks(self, callbacks):
@@ -43,11 +42,11 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 # HTTP-Anfrage analysieren
                 request = self._helpers.analyzeRequest(messageInfo)
                 headers = request.getHeaders()  # Header der Anfrage abrufen
-                base_url = headers[0].split()[1]  # Basis-URL aus der ersten Zeile der Anfrage extrahieren
+                base_url = self.get_base_url(headers)  # Basis-URL aus der Anfrage extrahieren
                 # Für jeden Verzeichnisnamen in der SecList
                 for directory in self.directories:
                     # Neue URL erstellen durch Hinzufügen des Verzeichnisnamens
-                    new_url = urljoin(base_url, directory.strip().decode('utf-8'))  # Strip und Decode anpassen
+                    new_url = base_url + "/" + directory.strip().decode('utf-8')  # Strip und Decode anpassen
                     self.send_request(new_url)  # HTTP-Anfrage senden
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))  # Fehler loggen
@@ -80,6 +79,13 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                     f.write(result + '\n')  # Ergebnisse in results.txt schreiben
         except IOError as e:
             logging.error("File error: {}".format(e))  # Fehler loggen, wenn Datei nicht gespeichert werden kann
+
+    def get_base_url(self, headers):
+        # Basis-URL aus den Anfrage-Headern extrahieren
+        first_line = headers[0].split()
+        if len(first_line) > 1:
+            return first_line[1]
+        return ""
 
     def get_host(self, url):
         return self._helpers.analyzeRequest(url).getUrl().getHost()  # Hostnamen aus der URL extrahieren
