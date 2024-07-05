@@ -21,7 +21,8 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             # HTTP-Service für die URL erstellen
             http_service = self._helpers.buildHttpService("raw.githubusercontent.com", 443, True)
             # HTTP-Anfrage für die URL erstellen
-            request = self._helpers.buildHttpRequest(http_service, url)
+            request = self._helpers.buildHttpRequest(http_service)
+            request.setUrl(url)
             # HTTP-Anfrage senden und Antwort erhalten
             response = self._callbacks.makeHttpRequest(http_service, request)
             # Wenn Antwort erfolgreich (Statuscode 200), Verzeichnisnamen auslesen
