@@ -3,7 +3,7 @@ from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpReq
 import urllib2
 import logging
 import os
-from urllib.parse import urljoin
+import urlparse
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -38,7 +38,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 headers = request.getHeaders()
                 base_url = headers[0].split()[1]
                 for directory in self.directories:
-                    new_url = urljoin(base_url, directory.strip())  # Strip leading/trailing spaces
+                    new_url = urlparse.urljoin(base_url, directory.strip())  # Strip leading/trailing spaces
                     self.send_request(new_url)
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))
@@ -60,11 +60,4 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     def extensionUnloaded(self):
         self.save_results()
         
-    # Diese Methode speichert die Ergebnisse in einer Datei
-    def save_results(self):
-        try:
-            with open('results.txt', 'w') as f:
-                for result in self.results:
-                    f.write(result + '\n')
-        except IOError as e:
-            logging.error("File error: {}".format(e))
+    # Diese
