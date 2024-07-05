@@ -1,92 +1,82 @@
-# -*- coding: utf-8 -*-
-from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse, IHttpService
+from burp import IBurpExtender, IExtensionStateListener, IHttpListener
 import logging
-
-logging.basicConfig(level=logging.DEBUG)
 
 class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     def registerExtenderCallbacks(self, callbacks):
         self._callbacks = callbacks
-        self._helpers = callbacks.getHelpers()
-        callbacks.setExtensionName("Directory Bruteforcer")
-        callbacks.registerHttpListener(self)
-        callbacks.registerExtensionStateListener(self)
+        self._helpers = callbacks.getHelpers()  # Helper-Funktionen von Burp API abrufen
+        callbacks.setExtensionName("Directory Bruteforcer")  # Name der Erweiterung festlegen
+        callbacks.registerHttpListener(self)  # HTTP-Listener registrieren
+        callbacks.registerExtensionStateListener(self)  # Erweiterungsstatus-Listener registrieren
         
-        self.directories = []
-        self.results = []
-        self.load_seclist()
-        
+        self.directories = []  # Liste für Verzeichnisnamen initialisieren
+        self.results = []  # Liste für gefundene Verzeichnisse initialisieren
+        self.load_seclist()  # SecList von URL laden
+
     def load_seclist(self):
+        # URL zur SecList definieren
         url = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
         try:
-            # Get the IHttpService for the URL from the current request
-            http_service = self.get_http_service_from_request()
-            
-            # Make the HTTP request to load the SecList
-            response = self._callbacks.makeHttpRequest(http_service, self._helpers.buildHttpRequest(self.get_target_url(), None))
-            
-            if response.getStatusCode() == 200:
-                content = response.getResponse()
-                self.directories = content.splitlines()
-                logging.debug("SecList loaded successfully")
+            # HTTP-Service für die URL erstellen
+            http_service = self._helpers.buildHttpService("raw.githubusercontent.com", 443, True)
+            # HTTP-Anfrage für die URL erstellen
+            request = self._helpers.buildHttpRequest(http_service, url)
+            # HTTP-Anfrage senden und Antwort erhalten
+            response = self._callbacks.makeHttpRequest(http_service, request)
+            # Wenn Antwort erfolgreich (Statuscode 200), Verzeichnisnamen auslesen
+            if response and response.getStatusCode() == 200:
+                # Antwort analysieren und in Zeilen aufteilen
+                analyzed_response = self._helpers.analyzeResponse(response)
+                self.directories = analyzed_response.getResponse().tostring().splitlines()
+                logging.info("SecList loaded successfully")  # Erfolgsmeldung loggen
             else:
-                logging.error("Failed to load SecList: HTTP %d" % response.getStatusCode())
-                self.directories = []
+                logging.error("Failed to load SecList")  # Fehlermeldung loggen, wenn Laden fehlschlägt
         except Exception as e:
-            logging.error("Error loading SecList: %s" % str(e))
-            self.directories = []
-        
-    def get_http_service_from_request(self):
-        # Get the IHttpService for the URL from the current request
-        request_info = self._helpers.analyzeRequest(self._callbacks.getProxyHistory()[-1])  # Get the latest intercepted request
-        return request_info.getHttpService()
-    
-    def get_target_url(self):
-        # Get the target URL from the current request
-        request_info = self._helpers.analyzeRequest(self._callbacks.getProxyHistory()[-1])  # Get the latest intercepted request
-        return self._helpers.buildHttpService(request_info.getHost(), request_info.getPort(), request_info.getProtocol())
-    
+            logging.error("Error loading SecList: {}".format(e))  # Fehler loggen
+
     def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
         if messageIsRequest:
             try:
+                # HTTP-Anfrage analysieren
                 request = self._helpers.analyzeRequest(messageInfo)
-                headers = request.getHeaders()
-                base_url = headers[0].split()[1]
+                headers = request.getHeaders()  # Header der Anfrage abrufen
+                base_url = headers[0].split()[1]  # Basis-URL aus der ersten Zeile der Anfrage extrahieren
+                # Für jeden Verzeichnisnamen in der SecList
                 for directory in self.directories:
-                    new_url = self.build_url(base_url, directory.strip())
-                    self.send_request(new_url)
+                    # Neue URL erstellen durch Hinzufügen des Verzeichnisnamens
+                    new_url = base_url + "/" + directory.strip().decode('utf-8')  # Strip und Decode anpassen
+                    self.send_request(new_url)  # HTTP-Anfrage senden
             except Exception as e:
-                logging.error("Error processing HTTP message: %s" % str(e))
-    
-    def build_url(self, base_url, directory):
-        if not base_url.startswith("http"):
-            base_url = "http://" + base_url  # prepend http if not present
-        if base_url.endswith("/"):
-            return base_url + directory
-        else:
-            return base_url + "/" + directory
-    
+                logging.error("Error processing HTTP message: {}".format(e))  # Fehler loggen
+
     def send_request(self, url):
         try:
-            # Make HTTP request to the constructed URL
-            http_service = self.get_http_service_from_request()
-            response = self._callbacks.makeHttpRequest(http_service, self._helpers.buildHttpRequest(url))
-            
-            if response.getStatusCode() == 200:
-                self.results.append(url)
-                logging.debug("Directory found: %s" % url)
+            # HTTP-Service für die URL erstellen
+            http_service = self._helpers.buildHttpService(self.get_host(url), 443, True)
+            # HTTP-Anfrage für die URL erstellen
+            request = self._helpers.buildHttpRequest(http_service, url)
+            # HTTP-Anfrage senden und Antwort erhalten
+            response = self._callbacks.makeHttpRequest(http_service, request)
+            # Wenn Antwort erfolgreich (Statuscode 200), URL zu den Ergebnissen hinzufügen
+            if response and response.getStatusCode() == 200:
+                self.results.append(url)  # URL zu den Ergebnissen hinzufügen
+                logging.debug("Directory found: {}".format(url))  # Debug-Nachricht loggen
             else:
-                logging.debug("Received status code %d for URL: %s" % (response.getStatusCode(), url))
+                logging.debug("Received status code {} for URL: {}".format(response.getStatusCode(), url))
+                # Debug-Nachricht mit erhaltenem Statuscode loggen
         except Exception as e:
-            logging.error("Request error for %s: %s" % (url, str(e)))
-    
+            logging.error("Request error for {}: {}".format(url, e))  # Fehler loggen
+
     def extensionUnloaded(self):
-        self.save_results()
-    
+        self.save_results()  # Ergebnisse speichern, wenn die Erweiterung entladen wird
+
     def save_results(self):
         try:
             with open('results.txt', 'w') as f:
                 for result in self.results:
-                    f.write(result + '\n')
+                    f.write(result + '\n')  # Ergebnisse in results.txt schreiben
         except IOError as e:
-            logging.error("File error: %s" % str(e))
+            logging.error("File error: {}".format(e))  # Fehler loggen, wenn Datei nicht gespeichert werden kann
+
+    def get_host(self, url):
+        return self._helpers.analyzeRequest(url).getUrl().getHost()  # Hostnamen aus der URL extrahieren
