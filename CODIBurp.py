@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
+import urllib2
 import logging
 import os
-import urllib2
-from urlparse import urljoin
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -17,7 +16,6 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         callbacks.registerExtensionStateListener(self)
         
         self.directories = []
-        self.results = []
         self.load_seclist()
         
     # Diese Methode lädt die SecList von einer URL und speichert sie in einer Liste
@@ -26,7 +24,6 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         try:
             response = urllib2.urlopen(url)
             self.directories = response.read().splitlines()
-            logging.info("SecList loaded successfully")
         except urllib2.URLError as e:
             logging.error("Error loading SecList: {}".format(e))
             self.directories = []  # Handle appropriately
@@ -38,23 +35,19 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 request = self._helpers.analyzeRequest(messageInfo)
                 headers = request.getHeaders()
                 base_url = headers[0].split()[1]
-                logging.debug("Processing request for base URL: {}".format(base_url))  # Debugging-Info
                 for directory in self.directories:
-                    new_url = urljoin(base_url, directory.strip())  # Strip leading/trailing spaces
-                    logging.debug("Testing directory: {}".format(new_url))  # Debugging-Info
+                    new_url = self._helpers.buildHttpMessage([base_url, directory], None)
                     self.send_request(new_url)
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))
                 
-    # Diese Methode sendet eine HTTP-Anfrage und speichert gültige Verzeichnisse in einer Liste
+    # Diese Methode sendet eine HTTP-Anfrage und protokolliert gültige Verzeichnisse
     def send_request(self, url):
         try:
-            logging.debug("Sending request to URL: {}".format(url))  # Debugging-Info
             request = urllib2.Request(url)
             response = urllib2.urlopen(request, timeout=10)  # Timeout nach 10 Sekunden
             if response.getcode() == 200:
-                self.results.append(url)
-                logging.debug("Directory found: {}".format(url))
+                logging.info("Directory found: {}".format(url))
             else:
                 logging.debug("Received status code {} for URL: {}".format(response.getcode(), url))
         except urllib2.URLError as e:
@@ -62,19 +55,4 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             
     # Diese Methode wird aufgerufen, wenn die Erweiterung entladen wird
     def extensionUnloaded(self):
-        self.save_results()
-        
-    # Diese Methode speichert die Ergebnisse in einer Datei
-    def save_results(self):
-        try:
-            # Bestimmen Sie das aktuelle Arbeitsverzeichnis
-            current_directory = os.getcwd()
-            # Dateipfad festlegen
-            file_path = os.path.join(current_directory, 'results.txt')
-            with open(file_path, 'w') as f:
-                for result in self.results:
-                    f.write(result + '\n')
-            # Protokollierung des Pfades der gespeicherten Datei
-            logging.info("Results saved to {}".format(file_path))
-        except IOError as e:
-            logging.error("File error: {}".format(e))
+        pass  # Hier könnte z.B. aufgeräumt werden, wenn nötig
