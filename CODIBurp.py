@@ -38,8 +38,10 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 request = self._helpers.analyzeRequest(messageInfo)
                 headers = request.getHeaders()
                 base_url = headers[0].split()[1]
+                logging.debug("Processing request for base URL: {}".format(base_url))  # Debugging-Info
                 for directory in self.directories:
                     new_url = urljoin(base_url, directory.strip())  # Strip leading/trailing spaces
+                    logging.debug("Testing directory: {}".format(new_url))  # Debugging-Info
                     self.send_request(new_url)
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))
@@ -47,6 +49,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     # Diese Methode sendet eine HTTP-Anfrage und speichert gültige Verzeichnisse in einer Liste
     def send_request(self, url):
         try:
+            logging.debug("Sending request to URL: {}".format(url))  # Debugging-Info
             request = urllib2.Request(url)
             response = urllib2.urlopen(request, timeout=10)  # Timeout nach 10 Sekunden
             if response.getcode() == 200:
