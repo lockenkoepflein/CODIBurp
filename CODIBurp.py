@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
 import logging
+from java.net import URL
 
 class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     def registerExtenderCallbacks(self, callbacks):
@@ -9,7 +10,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         callbacks.setExtensionName("Directory Bruteforcer")  # Name der Erweiterung festlegen
         callbacks.registerHttpListener(self)  # HTTP-Listener registrieren
         callbacks.registerExtensionStateListener(self)  # Erweiterungsstatus-Listener registrieren
-        
+
         self.directories = []  # Liste für Verzeichnisnamen initialisieren
         self.results = []  # Liste für gefundene Verzeichnisse initialisieren
         self.load_seclist()  # SecList von URL laden
@@ -18,18 +19,24 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         # URL zur SecList definieren
         url = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
         try:
+            # URL Objekt erstellen
+            parsed_url = URL(url)
+            host = parsed_url.getHost()
+            port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
+            use_https = parsed_url.getProtocol() == "https"
             # HTTP-Service für die URL erstellen
-            http_service = self._helpers.buildHttpService("raw.githubusercontent.com", 443, True)
+            http_service = self._helpers.buildHttpService(host, port, use_https)
             # HTTP-Anfrage für die URL erstellen
-            request = self._helpers.buildHttpRequest(http_service)
-            request.setUrl(url)
+            request = self._helpers.buildHttpRequest(parsed_url.getPath())
             # HTTP-Anfrage senden und Antwort erhalten
             response = self._callbacks.makeHttpRequest(http_service, request)
             # Wenn Antwort erfolgreich (Statuscode 200), Verzeichnisnamen auslesen
             if response and response.getStatusCode() == 200:
                 # Antwort analysieren und in Zeilen aufteilen
-                analyzed_response = self._helpers.analyzeResponse(response)
-                self.directories = analyzed_response.getResponse().tostring().splitlines()
+                response_info = self._helpers.analyzeResponse(response)
+                body_offset = response_info.getBodyOffset()
+                response_body = response.getResponse()[body_offset:].tostring()
+                self.directories = response_body.splitlines()
                 logging.info("SecList loaded successfully")  # Erfolgsmeldung loggen
             else:
                 logging.error("Failed to load SecList")  # Fehlermeldung loggen, wenn Laden fehlschlägt
@@ -46,17 +53,22 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 # Für jeden Verzeichnisnamen in der SecList
                 for directory in self.directories:
                     # Neue URL erstellen durch Hinzufügen des Verzeichnisnamens
-                    new_url = base_url + "/" + directory.strip().decode('utf-8')  # Strip und Decode anpassen
+                    new_url = base_url + "/" + directory.strip()  # Strip und Decode anpassen
                     self.send_request(new_url)  # HTTP-Anfrage senden
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))  # Fehler loggen
 
     def send_request(self, url):
         try:
+            # URL parsen
+            parsed_url = URL(url)
+            host = parsed_url.getHost()
+            port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
+            use_https = parsed_url.getProtocol() == "https"
             # HTTP-Service für die URL erstellen
-            http_service = self._helpers.buildHttpService(self.get_host(url), 443, True)
+            http_service = self._helpers.buildHttpService(host, port, use_https)
             # HTTP-Anfrage für die URL erstellen
-            request = self._helpers.buildHttpRequest(http_service, url)
+            request = self._helpers.buildHttpRequest(parsed_url.getPath())
             # HTTP-Anfrage senden und Antwort erhalten
             response = self._callbacks.makeHttpRequest(http_service, request)
             # Wenn Antwort erfolgreich (Statuscode 200), URL zu den Ergebnissen hinzufügen
@@ -88,4 +100,4 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         return ""
 
     def get_host(self, url):
-        return self._helpers.analyzeRequest(url).getUrl().getHost()  # Hostnamen aus der URL extrahieren
+        return URL(url).getHost()  # Hostnamen aus der URL extrahieren
