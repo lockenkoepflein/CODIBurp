@@ -58,7 +58,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 # Für jeden Verzeichnisnamen in der SecList
                 for directory in self.directories:
                     # Neue URL erstellen durch Hinzufügen des Verzeichnisnamens
-                    new_url = base_url + "/" + directory.strip()  # Strip und Decode anpassen
+                    new_url = self.construct_full_url(base_url, directory.strip())  # Strip und Decode anpassen
                     self.send_request(new_url)  # HTTP-Anfrage senden
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))  # Fehler loggen
@@ -109,6 +109,11 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         if len(first_line) > 1:
             return first_line[1]
         return ""
+
+    def construct_full_url(self, base_url, directory):
+        if not base_url.startswith("http://") and not base_url.startswith("https://"):
+            base_url = "http://" + base_url  # Standardmäßig http verwenden, falls kein Protokoll angegeben ist
+        return base_url.rstrip("/") + "/" + directory.lstrip("/")  # Basis-URL und Verzeichnis korrekt zusammensetzen
 
     def get_host(self, url):
         return URL(url).getHost()  # Hostnamen aus der URL extrahieren
