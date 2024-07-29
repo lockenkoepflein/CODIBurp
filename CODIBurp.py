@@ -24,15 +24,19 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             host = parsed_url.getHost()
             port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
             use_https = parsed_url.getProtocol() == "https"
+            
             # HTTP-Service für die URL erstellen
             http_service = self._helpers.buildHttpService(host, port, use_https)
+            
+            # Den vollständigen Pfad (mit Query-Parametern) erstellen
+            path = parsed_url.getPath() + ("?" + parsed_url.getQuery() if parsed_url.getQuery() else "")
+            
             # HTTP-Anfrage für die URL erstellen
-            request = self._helpers.buildHttpRequest(parsed_url.getPath())  # Hier den Pfad als String übergeben
+            request = self._helpers.buildHttpRequest(path)
+            
             # HTTP-Anfrage senden und Antwort erhalten
             response = self._callbacks.makeHttpRequest(http_service, request)
-            # Wenn Antwort erfolgreich (Statuscode 200), Verzeichnisnamen auslesen
-            if response and response.getStatusCode() == 200:
-                # Antwort analysieren und in Zeilen aufteilen
+            if response:
                 response_info = self._helpers.analyzeResponse(response)
                 body_offset = response_info.getBodyOffset()
                 response_body = response.getResponse()[body_offset:].tostring()
@@ -50,10 +54,11 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 request = self._helpers.analyzeRequest(messageInfo)
                 headers = request.getHeaders()  # Header der Anfrage abrufen
                 base_url = self.get_base_url(headers)  # Basis-URL aus der Anfrage extrahieren
+                
                 # Für jeden Verzeichnisnamen in der SecList
                 for directory in self.directories:
                     # Neue URL erstellen durch Hinzufügen des Verzeichnisnamens
-                    new_url = base_url + "/" + directory.strip()  # Strip und Decode anpassen
+                    new_url = base_url + "/" + directory.strip()
                     self.send_request(new_url)  # HTTP-Anfrage senden
             except Exception as e:
                 logging.error("Error processing HTTP message: {}".format(e))  # Fehler loggen
@@ -65,19 +70,29 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             host = parsed_url.getHost()
             port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
             use_https = parsed_url.getProtocol() == "https"
+            
             # HTTP-Service für die URL erstellen
             http_service = self._helpers.buildHttpService(host, port, use_https)
+            
+            # Den vollständigen Pfad (mit Query-Parametern) erstellen
+            path = parsed_url.getPath() + ("?" + parsed_url.getQuery() if parsed_url.getQuery() else "")
+            
             # HTTP-Anfrage für die URL erstellen
-            request = self._helpers.buildHttpRequest(parsed_url.getPath())
+            request = self._helpers.buildHttpRequest(path)
+            logging.debug("Sending request to URL: {}".format(url))  # Loggen, welche Anfrage gesendet wird
+            
             # HTTP-Anfrage senden und Antwort erhalten
             response = self._callbacks.makeHttpRequest(http_service, request)
-            # Wenn Antwort erfolgreich (Statuscode 200), URL zu den Ergebnissen hinzufügen
-            if response and response.getStatusCode() == 200:
-                self.results.append(url)  # URL zu den Ergebnissen hinzufügen
-                logging.debug("Directory found: {}".format(url))  # Debug-Nachricht loggen
+            if response:
+                response_info = self._helpers.analyzeResponse(response)
+                status_code = response_info.getStatusCode()
+                if status_code == 200:
+                    self.results.append(url)  # URL zu den Ergebnissen hinzufügen
+                    logging.debug("Directory found: {}".format(url))  # Debug-Nachricht loggen
+                else:
+                    logging.debug("Received status code {} for URL: {}".format(status_code, url))
             else:
-                logging.debug("Received status code {} for URL: {}".format(response.getStatusCode(), url))
-                # Debug-Nachricht mit erhaltenem Statuscode loggen
+                logging.debug("No response for URL: {}".format(url))
         except Exception as e:
             logging.error("Request error for {}: {}".format(url, e))  # Fehler loggen
 
