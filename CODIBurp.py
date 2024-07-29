@@ -140,12 +140,15 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             path = '/' + path
 
         # Extrahieren des Hostnamens aus den Headern
+        host = ""
         for header in headers:
             if header.lower().startswith("host:"):
                 host = header.split(':', 1)[1].strip()  # Hostnamen aus dem Header extrahieren
                 break
-        else:
-            host = ""  # Falls kein Host-Header vorhanden ist, leere Zeichenfolge zurückgeben
+
+        if not host:
+            logging.error("Host header missing")  # Fehlermeldung, wenn kein Host-Header vorhanden ist
+            return ""
 
         return "http://" + host + path
 
