@@ -27,7 +27,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             # HTTP-Service für die URL erstellen
             http_service = self._helpers.buildHttpService(host, port, use_https)
             # HTTP-Anfrage für die URL erstellen
-            request = self._helpers.buildHttpRequest(parsed_url.getPath())
+            request = self._helpers.buildHttpRequest(parsed_url.getPath())  # Hier den Pfad als String übergeben
             # HTTP-Anfrage senden und Antwort erhalten
             response = self._callbacks.makeHttpRequest(http_service, request)
             # Wenn Antwort erfolgreich (Statuscode 200), Verzeichnisnamen auslesen
