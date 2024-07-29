@@ -6,7 +6,7 @@ from java.net import URL
 class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     def registerExtenderCallbacks(self, callbacks):
         """
-        Dieser Methode wird aufgerufen, wenn die Erweiterung geladen wird.
+        Diese Methode wird aufgerufen, wenn die Erweiterung geladen wird.
         Registriert notwendige Callbacks und initialisiert die Erweiterung.
         """
         self._callbacks = callbacks
@@ -23,12 +23,12 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         """
         Lädt die Verzeichnisliste (SecList) von der angegebenen URL.
         """
-        url = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
+        seclist_url = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
         try:
-            # HTTP-Service für die URL erstellen
+            # HTTP-Service für die SecList-URL erstellen
             http_service = self._helpers.buildHttpService("raw.githubusercontent.com", 443, True)
-            # HTTP-Anfrage für die URL erstellen
-            request = self._helpers.buildHttpRequest(URL(url))
+            # HTTP-Anfrage für die SecList-URL erstellen
+            request = self._helpers.buildHttpRequest(URL(seclist_url))
             # HTTP-Anfrage senden und Antwort erhalten
             response = self._callbacks.makeHttpRequest(http_service, request)
             if response:
