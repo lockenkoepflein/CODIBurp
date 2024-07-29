@@ -31,15 +31,20 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             # HTTP-Anfrage senden und Antwort erhalten
             response = self._callbacks.makeHttpRequest(http_service, request)
             # Wenn Antwort erfolgreich (Statuscode 200), Verzeichnisnamen auslesen
-            response_info = self._helpers.analyzeResponse(response)
-            if response_info.getStatusCode() == 200:
-                # Antwort analysieren und in Zeilen aufteilen
-                body_offset = response_info.getBodyOffset()
-                response_body = response[body_offset:].tostring()
-                self.directories = response_body.splitlines()
-                logging.info("SecList loaded successfully")  # Erfolgsmeldung loggen
+            if response:
+                # Rohantwort von der Anfrage abrufen
+                raw_response = response.getResponse()
+                response_info = self._helpers.analyzeResponse(raw_response)
+                if response_info.getStatusCode() == 200:
+                    # Antwort analysieren und in Zeilen aufteilen
+                    body_offset = response_info.getBodyOffset()
+                    response_body = raw_response[body_offset:].tostring()
+                    self.directories = response_body.splitlines()
+                    logging.info("SecList loaded successfully")  # Erfolgsmeldung loggen
+                else:
+                    logging.error("Failed to load SecList, status code: {}".format(response_info.getStatusCode()))  # Fehlermeldung loggen
             else:
-                logging.error("Failed to load SecList, status code: {}".format(response_info.getStatusCode()))  # Fehlermeldung loggen
+                logging.error("Failed to load SecList: No response received")
         except Exception as e:
             logging.error("Error loading SecList: {}".format(e))  # Fehler loggen
 
@@ -72,13 +77,18 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             # HTTP-Anfrage senden und Antwort erhalten
             response = self._callbacks.makeHttpRequest(http_service, request)
             # Wenn Antwort erfolgreich (Statuscode 200), URL zu den Ergebnissen hinzufügen
-            response_info = self._helpers.analyzeResponse(response)
-            if response_info.getStatusCode() == 200:
-                self.results.append(url)  # URL zu den Ergebnissen hinzufügen
-                logging.debug("Directory found: {}".format(url))  # Debug-Nachricht loggen
+            if response:
+                # Rohantwort von der Anfrage abrufen
+                raw_response = response.getResponse()
+                response_info = self._helpers.analyzeResponse(raw_response)
+                if response_info.getStatusCode() == 200:
+                    self.results.append(url)  # URL zu den Ergebnissen hinzufügen
+                    logging.debug("Directory found: {}".format(url))  # Debug-Nachricht loggen
+                else:
+                    logging.debug("Received status code {} for URL: {}".format(response_info.getStatusCode(), url))
+                    # Debug-Nachricht mit erhaltenem Statuscode loggen
             else:
-                logging.debug("Received status code {} for URL: {}".format(response_info.getStatusCode(), url))
-                # Debug-Nachricht mit erhaltenem Statuscode loggen
+                logging.error("Request error for {}: No response received".format(url))  # Fehler loggen
         except Exception as e:
             logging.error("Request error for {}: {}".format(url, e))  # Fehler loggen
 
