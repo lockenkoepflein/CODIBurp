@@ -37,7 +37,12 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 if response_info.getStatusCode() == 200:
                     # Antwort erfolgreich - Verzeichnisnamen extrahieren
                     body_offset = response_info.getBodyOffset()
-                    response_body = raw_response[body_offset:].decode('utf-8')  # Bytes in String umwandeln
+                    response_body = raw_response[body_offset:]
+                    
+                    # Umwandeln in String, falls nötig
+                    if isinstance(response_body, (bytes, bytearray)):
+                        response_body = response_body.decode('utf-8')
+                    
                     self.directories = response_body.splitlines()  # Verzeichnisnamen in Liste speichern
                     logging.info("SecList loaded successfully")  # Erfolgsmeldung loggen
                 else:
@@ -138,3 +143,9 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         Konstruiert eine vollständige URL durch Hinzufügen des Verzeichnisnamens zur Basis-URL.
         """
         return "{}{}".format(base_url.rstrip("/"), "/" + directory.lstrip("/"))  # Basis-URL und Verzeichnis korrekt zusammensetzen
+
+    def get_host(self, url):
+        """
+        Extrahiert den Hostnamen aus der URL.
+        """
+        return URL(url).getHost()  # Hostnamen aus der URL extrahieren
