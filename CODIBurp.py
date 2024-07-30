@@ -89,6 +89,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             # URL parsen
             parsed_url = URL(url)
             host = parsed_url.getHost()
+            logging.debug("Parsed host: {}".format(host))  # Debug-Ausgabe des geparsten Hosts
             if not host:
                 raise ValueError("Invalid host in URL: {}".format(url))  # Fehler, wenn der Host ungültig ist
             port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
