@@ -57,15 +57,16 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 # HTTP-Anfrage analysieren
                 request = self._helpers.analyzeRequest(messageInfo)
                 headers = request.getHeaders()
-                # Basis-URL aus den Anfrage-Headern extrahieren
+                # Basis-URL und Host aus den Anfrage-Headern extrahieren
                 base_url = self.get_base_url(headers)
-                if not base_url:
-                    logging.error("Base URL could not be determined")  # Fehlermeldung, wenn Basis-URL nicht ermittelt werden konnte
+                host = self.get_host(headers)
+                if not base_url or not host:
+                    logging.error("Base URL or Host could not be determined")  # Fehlermeldung, wenn Basis-URL oder Host nicht ermittelt werden konnte
                     return
 
                 # Wenn die Basis-URL kein Protokoll enthält, füge http:// hinzu
                 if not base_url.startswith("http://") and not base_url.startswith("https://"):
-                    base_url = "http://" + base_url
+                    base_url = "http://" + host + base_url
 
                 # Für jeden Verzeichnisnamen in der SecList
                 for directory in self.directories:
@@ -86,11 +87,8 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             host = parsed_url.getHost()
             if not host:
                 raise ValueError("Invalid host in URL: {}".format(url))  # Fehler, wenn der Host ungültig ist
-
-            # Bestimme den Port, falls nicht angegeben
             port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
             use_https = parsed_url.getProtocol() == "https"
-            
             # HTTP-Service für die URL erstellen
             http_service = self._helpers.buildHttpService(host, port, use_https)
             # HTTP-Anfrage für die URL erstellen
@@ -131,38 +129,22 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         """
         Extrahiert die Basis-URL aus den Anfrage-Headern.
         """
-        # Die erste Zeile der Header ist die Request Line (z.B. "GET /Test/Admin HTTP/1.1")
-        request_line = headers[0]
-        method, path, _ = request_line.split(' ', 2)  # Teilt die Zeile in Methode, Pfad und Version
+        request_line = headers[0].split()
+        if len(request_line) > 1:
+            return request_line[1]  # Die Basis-URL ist der zweite Teil der ersten Zeile der Header
+        return ""
 
-        # Falls der Pfad keinen führenden Schrägstrich hat, fügen Sie einen hinzu
-        if not path.startswith('/'):
-            path = '/' + path
-
-        # Extrahieren des Hostnamens aus den Headern
-        host = ""
+    def get_host(self, headers):
+        """
+        Extrahiert den Hostnamen aus den Anfrage-Headern.
+        """
         for header in headers:
             if header.lower().startswith("host:"):
-                host = header.split(':', 1)[1].strip()  # Hostnamen aus dem Header extrahieren
-                break
-
-        if not host:
-            logging.error("Host header missing")  # Fehlermeldung, wenn kein Host-Header vorhanden ist
-            return ""
-
-        return "http://" + host + path
+                return header.split(':', 1)[1].strip()  # Hostnamen aus dem Header extrahieren
+        return ""
 
     def construct_full_url(self, base_url, directory):
         """
         Konstruiert eine vollständige URL durch Hinzufügen des Verzeichnisnamens zur Basis-URL.
         """
-        # Sicherstellen, dass die Basis-URL mit einem Schrägstrich endet
-        if not base_url.endswith('/'):
-            base_url += '/'
-        
-        # Falls das Verzeichnis einen führenden Schrägstrich hat, entfernen
-        if directory.startswith('/'):
-            directory = directory[1:]
-        
-        # Kombiniere Basis-URL und Verzeichnisnamen
-        return base_url + directory
+        return base_url.rstrip("/") + "/" + directory.lstrip("/")  # Basis-URL und Verzeichnis korrekt zusammensetzen
