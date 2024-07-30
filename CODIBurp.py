@@ -37,20 +37,15 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 if response_info.getStatusCode() == 200:
                     # Antwort erfolgreich - Verzeichnisnamen extrahieren
                     body_offset = response_info.getBodyOffset()
-                    response_body = raw_response[body_offset:]
-                    
-                    # Umwandeln in String, falls nötig
-                    if isinstance(response_body, (bytes, bytearray)):
-                        response_body = response_body.decode('utf-8')
-                    
+                    response_body = raw_response[body_offset:].tostring()
                     self.directories = response_body.splitlines()  # Verzeichnisnamen in Liste speichern
                     logging.info("SecList loaded successfully")  # Erfolgsmeldung loggen
                 else:
-                    logging.error("Failed to load SecList, status code: {}".format(response_info.getStatusCode()))  # Fehlermeldung loggen
+                    logging.error("Failed to load SecList, status code: " + str(response_info.getStatusCode()))  # Fehlermeldung loggen
             else:
                 logging.error("Failed to load SecList: No response received")  # Fehler loggen, wenn keine Antwort erhalten
         except Exception as e:
-            logging.error("Error loading SecList: {}".format(e))  # Fehler loggen, wenn beim Laden der SecList ein Problem auftritt
+            logging.error("Error loading SecList: " + str(e))  # Fehler loggen, wenn beim Laden der SecList ein Problem auftritt
 
     def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
         """
@@ -62,8 +57,8 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 # HTTP-Anfrage analysieren
                 request = self._helpers.analyzeRequest(messageInfo)
                 headers = request.getHeaders()
-                # Basis-URL aus den Anfrage-Headern extrahieren
-                base_url = self.get_base_url(headers)
+                # Basis-URL aus der Anfrage-Nachricht extrahieren
+                base_url = self.get_base_url(messageInfo)
                 if not base_url:
                     logging.error("Base URL could not be determined")  # Fehlermeldung, wenn Basis-URL nicht ermittelt werden konnte
                     return
@@ -76,10 +71,10 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 for directory in self.directories:
                     # Vollständige URL durch Hinzufügen des Verzeichnisnamens zur Basis-URL erstellen
                     new_url = self.construct_full_url(base_url, directory.strip())
-                    logging.debug("Constructed URL: {}".format(new_url))  # Debug-Nachricht mit der konstruierten URL loggen
+                    logging.debug("Constructed URL: " + new_url)  # Debug-Nachricht mit der konstruierten URL loggen
                     self.send_request(new_url)  # HTTP-Anfrage an die neue URL senden
             except Exception as e:
-                logging.error("Error processing HTTP message: {}".format(e))  # Fehler loggen, wenn beim Verarbeiten der HTTP-Nachricht ein Problem auftritt
+                logging.error("Error processing HTTP message: " + str(e))  # Fehler loggen, wenn beim Verarbeiten der HTTP-Nachricht ein Problem auftritt
 
     def send_request(self, url):
         """
@@ -90,7 +85,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             parsed_url = URL(url)
             host = parsed_url.getHost()
             if not host:
-                raise ValueError("Invalid host in URL: {}".format(url))  # Fehler, wenn der Host ungültig ist
+                raise ValueError("Invalid host in URL: " + url)  # Fehler, wenn der Host ungültig ist
             port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
             use_https = parsed_url.getProtocol() == "https"
             # HTTP-Service für die URL erstellen
@@ -104,13 +99,13 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 response_info = self._helpers.analyzeResponse(raw_response)
                 if response_info.getStatusCode() == 200:
                     self.results.append(url)  # Gefundene URL zu den Ergebnissen hinzufügen
-                    logging.debug("Directory found: {}".format(url))  # Debug-Nachricht loggen
+                    logging.debug("Directory found: " + url)  # Debug-Nachricht loggen
                 else:
-                    logging.debug("Received status code {} for URL: {}".format(response_info.getStatusCode(), url))  # Debug-Nachricht mit erhaltenem Statuscode loggen
+                    logging.debug("Received status code " + str(response_info.getStatusCode()) + " for URL: " + url)  # Debug-Nachricht mit erhaltenem Statuscode loggen
             else:
-                logging.error("Request error for {}: No response received".format(url))  # Fehler loggen, wenn keine Antwort erhalten
+                logging.error("Request error for " + url + ": No response received")  # Fehler loggen, wenn keine Antwort erhalten
         except Exception as e:
-            logging.error("Request error for {}: {}".format(url, e))  # Fehler loggen, wenn beim Senden der Anfrage ein Problem auftritt
+            logging.error("Request error for " + url + ": " + str(e))  # Fehler loggen, wenn beim Senden der Anfrage ein Problem auftritt
 
     def extensionUnloaded(self):
         """
@@ -127,22 +122,40 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 for result in self.results:
                     f.write(result + '\n')  # Ergebnisse in results.txt schreiben
         except IOError as e:
-            logging.error("File error: {}".format(e))  # Fehler loggen, wenn die Datei nicht gespeichert werden kann
+            logging.error("File error: " + str(e))  # Fehler loggen, wenn die Datei nicht gespeichert werden kann
 
-    def get_base_url(self, headers):
+    def get_base_url(self, messageInfo):
         """
-        Extrahiert die Basis-URL aus den Anfrage-Headern.
+        Extrahiert die Basis-URL aus der Anfrage-Nachricht.
         """
-        first_line = headers[0].split()
-        if len(first_line) > 1:
-            return first_line[1]  # Die Basis-URL ist der zweite Teil der ersten Zeile der Header
-        return ""
+        request_info = self._helpers.analyzeRequest(messageInfo)
+        headers = request_info.getHeaders()
+
+        # Extrahieren der ersten Zeile, um das Request-Line Format zu analysieren
+        request_line = headers[0]
+        method, url, _ = request_line.split(' ', 2)
+        
+        # Extrahieren des Hosts aus den Headern
+        host = None
+        for header in headers:
+            if header.startswith("Host:"):
+                host = header[5:].strip()
+                break
+        
+        if not host:
+            logging.error("Host header not found")
+            return ""
+        
+        # Basis-URL zusammenbauen
+        # Das Protokoll ist in der Regel "http" oder "https", je nach Konfiguration
+        protocol = "http"  # Oder "https", abhängig von der Anforderung
+        return protocol + "://" + host + url
 
     def construct_full_url(self, base_url, directory):
         """
         Konstruiert eine vollständige URL durch Hinzufügen des Verzeichnisnamens zur Basis-URL.
         """
-        return "{}{}".format(base_url.rstrip("/"), "/" + directory.lstrip("/"))  # Basis-URL und Verzeichnis korrekt zusammensetzen
+        return base_url.rstrip("/") + "/" + directory.lstrip("/")  # Basis-URL und Verzeichnis korrekt zusammensetzen
 
     def get_host(self, url):
         """
