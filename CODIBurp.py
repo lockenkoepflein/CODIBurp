@@ -70,6 +70,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 # Wenn die Basis-URL kein Protokoll enthält, füge http:// hinzu
                 if not base_url.startswith("http://") and not base_url.startswith("https://"):
                     base_url = "http://" + base_url
+                    logging.debug("Modified Base URL with http://: {}".format(base_url))  # Debug-Ausgabe der modifizierten Basis-URL
 
                 # Für jeden Verzeichnisnamen in der SecList
                 for directory in self.directories:
@@ -139,7 +140,10 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         first_line = headers[0].split()
         logging.debug("First header line: {}".format(first_line))  # Debug-Nachricht für die erste Zeile der Header
         if len(first_line) > 1:
-            return first_line[1]  # Die Basis-URL ist der zweite Teil der ersten Zeile der Header
+            base_url = first_line[1]
+            logging.debug("Extracted base URL: {}".format(base_url))  # Debug-Ausgabe der extrahierten Basis-URL
+            return base_url
+        logging.debug("Could not extract base URL")  # Debug-Nachricht, wenn die Basis-URL nicht extrahiert werden konnte
         return ""
 
     def construct_full_url(self, base_url, directory):
