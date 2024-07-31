@@ -22,6 +22,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
 
         self.directories = []  # Liste für Verzeichnisnamen initialisieren
         self.results = []  # Liste für gefundene Verzeichnisse initialisieren
+        self.processed_urls = set()  # Set zur Speicherung der verarbeiteten URLs
         self.load_seclist()  # SecList von URL laden
 
     def load_seclist(self):
@@ -71,6 +72,14 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 # Wenn die Basis-URL kein Protokoll enthält, füge http:// hinzu
                 if not base_url.startswith("http://") and not base_url.startswith("https://"):
                     base_url = "http://" + base_url
+
+                # Überprüfen, ob die Basis-URL bereits verarbeitet wurde
+                if base_url in self.processed_urls:
+                    self._logger.debug("Base URL already processed: {}".format(base_url))
+                    return
+
+                # Basis-URL zur Liste der verarbeiteten URLs hinzufügen
+                self.processed_urls.add(base_url)
 
                 # Verzeichnisse durchlaufen und Anfragen senden
                 for directory in self.directories:
