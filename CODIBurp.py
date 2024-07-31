@@ -43,7 +43,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                     # Antwort erfolgreich - Verzeichnisnamen extrahieren
                     body_offset = response_info.getBodyOffset()
                     response_body = raw_response[body_offset:].tostring()
-                    self.directories = response_body.splitlines()  # Verzeichnisnamen in Liste speichern
+                    self.directories = list(set(response_body.splitlines()))  # Verzeichnisnamen in Liste speichern, Duplikate entfernen
                     self._logger.info("SecList loaded successfully")  # Erfolgsmeldung loggen
                 else:
                     self._logger.error("Failed to load SecList, status code: {}".format(response_info.getStatusCode()))  # Fehlermeldung loggen
@@ -72,12 +72,15 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 if not base_url.startswith("http://") and not base_url.startswith("https://"):
                     base_url = "http://" + base_url
 
-                # Für jeden Verzeichnisnamen in der SecList
+                # Verzeichnisse durchlaufen und Anfragen senden
                 for directory in self.directories:
                     # Vollständige URL durch Hinzufügen des Verzeichnisnamens zur Basis-URL erstellen
                     new_url = self.construct_full_url(base_url, directory.strip())
                     self._logger.debug("Constructed URL: {}".format(new_url))  # Debug-Nachricht mit der konstruierten URL loggen
                     self.send_request(new_url)  # HTTP-Anfrage an die neue URL senden
+
+                # Bestätigungs-Log, dass alle Verzeichnisse durchlaufen wurden
+                self._logger.info("Completed processing all directories for base URL: {}".format(base_url))
             except Exception as e:
                 self._logger.error("Error processing HTTP message: {}".format(e))  # Fehler loggen, wenn beim Verarbeiten der HTTP-Nachricht ein Problem auftritt
 
@@ -152,7 +155,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         else:
             host = ""  # Falls kein Host-Header vorhanden ist, leere Zeichenfolge zurückgeben
 
-        return "http://" + host + path
+        return "http://" + host
 
     def construct_full_url(self, base_url, directory):
         """
