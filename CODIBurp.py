@@ -57,12 +57,8 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 # HTTP-Anfrage analysieren
                 request = self._helpers.analyzeRequest(messageInfo)
                 headers = request.getHeaders()
-                logging.debug("Request Headers: {}".format(headers))  # Debug-Ausgabe der Anfrage-Header
-
                 # Basis-URL aus den Anfrage-Headern extrahieren
                 base_url = self.get_base_url(headers)
-                logging.debug("Extracted Base URL: {}".format(base_url))  # Debug-Ausgabe der extrahierten Basis-URL
-
                 if not base_url:
                     logging.error("Base URL could not be determined")  # Fehlermeldung, wenn Basis-URL nicht ermittelt werden konnte
                     return
@@ -70,7 +66,6 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 # Wenn die Basis-URL kein Protokoll enthält, füge http:// hinzu
                 if not base_url.startswith("http://") and not base_url.startswith("https://"):
                     base_url = "http://" + base_url
-                    logging.debug("Modified Base URL with http://: {}".format(base_url))  # Debug-Ausgabe der modifizierten Basis-URL
 
                 # Für jeden Verzeichnisnamen in der SecList
                 for directory in self.directories:
@@ -89,11 +84,13 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             # URL parsen
             parsed_url = URL(url)
             host = parsed_url.getHost()
-            logging.debug("Parsed host: {}".format(host))  # Debug-Ausgabe des geparsten Hosts
             if not host:
                 raise ValueError("Invalid host in URL: {}".format(url))  # Fehler, wenn der Host ungültig ist
+
+            # Bestimme den Port, falls nicht angegeben
             port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
             use_https = parsed_url.getProtocol() == "https"
+            
             # HTTP-Service für die URL erstellen
             http_service = self._helpers.buildHttpService(host, port, use_https)
             # HTTP-Anfrage für die URL erstellen
@@ -134,27 +131,35 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         """
         Extrahiert die Basis-URL aus den Anfrage-Headern.
         """
-        logging.debug("Getting base URL from headers")  # Debug-Nachricht, dass get_base_url aufgerufen wurde
-        if not headers:
-            logging.debug("No headers provided")  # Debug-Nachricht, wenn keine Header vorhanden sind
-            return ""
-        first_line = headers[0].split()
-        logging.debug("First header line: {}".format(first_line))  # Debug-Nachricht für die erste Zeile der Header
-        if len(first_line) > 1:
-            base_url = first_line[1]
-            logging.debug("Extracted base URL: {}".format(base_url))  # Debug-Ausgabe der extrahierten Basis-URL
-            return base_url
-        logging.debug("Could not extract base URL")  # Debug-Nachricht, wenn die Basis-URL nicht extrahiert werden konnte
-        return ""
+        # Die erste Zeile der Header ist die Request Line (z.B. "GET /Test/Admin HTTP/1.1")
+        request_line = headers[0]
+        method, path, _ = request_line.split(' ', 2)  # Teilt die Zeile in Methode, Pfad und Version
+
+        # Falls der Pfad keinen führenden Schrägstrich hat, fügen Sie einen hinzu
+        if not path.startswith('/'):
+            path = '/' + path
+
+        # Extrahieren des Hostnamens aus den Headern
+        for header in headers:
+            if header.lower().startswith("host:"):
+                host = header.split(':', 1)[1].strip()  # Hostnamen aus dem Header extrahieren
+                break
+        else:
+            host = ""  # Falls kein Host-Header vorhanden ist, leere Zeichenfolge zurückgeben
+
+        return host + path  # Basis-URL ohne http:// zurückgeben
 
     def construct_full_url(self, base_url, directory):
         """
         Konstruiert eine vollständige URL durch Hinzufügen des Verzeichnisnamens zur Basis-URL.
         """
-        return base_url.rstrip("/") + "/" + directory.lstrip("/")  # Basis-URL und Verzeichnis korrekt zusammensetzen
-
-    def get_host(self, url):
-        """
-        Extrahiert den Hostnamen aus der URL.
-        """
-        return URL(url).getHost()  # Hostnamen aus der URL extrahieren
+        # Sicherstellen, dass die Basis-URL mit einem Schrägstrich endet
+        if not base_url.endswith('/'):
+            base_url += '/'
+        
+        # Falls das Verzeichnis einen führenden Schrägstrich hat, entfernen
+        if directory.startswith('/'):
+            directory = directory[1:]
+        
+        # Kombiniere Basis-URL und Verzeichnisnamen
+        return "http://" + base_url + directory
