@@ -15,14 +15,14 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         callbacks.registerHttpListener(self)  # HTTP-Listener registrieren
         callbacks.registerExtensionStateListener(self)  # Erweiterungsstatus-Listener registrieren
 
-        self.directories = []  # Liste für Verzeichnisnamen initialisieren
-        self.results = []  # Liste für gefundene Verzeichnisse initialisieren
-        self.load_seclist()  # SecList von URL laden
-
         # Setze Logging-Level und Format
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self._logger = logging.getLogger("BurpExtender")
         self._logger.setLevel(logging.DEBUG)
+
+        self.directories = []  # Liste für Verzeichnisnamen initialisieren
+        self.results = []  # Liste für gefundene Verzeichnisse initialisieren
+        self.load_seclist()  # SecList von URL laden
 
     def load_seclist(self):
         """
