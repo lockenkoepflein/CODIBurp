@@ -243,7 +243,9 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         """
         Aktualisiert das Ergebnisfeld mit neuen Ergebnissen.
         """
-        self._results_text_area.append("{} - {}\n".format(url, status_code))
+        result_entry = "{} - {}\n".format(url, status_code)
+        self._results_text_area.append(result_entry)
+        self.save_results()  # Speichert alle Ergebnisse bei jeder Aktualisierung
 
     def update_progress(self, message):
         """
