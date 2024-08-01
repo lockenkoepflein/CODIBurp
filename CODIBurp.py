@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
-from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JOptionPane, SwingUtilities)
+from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, SwingUtilities)
 from javax.swing.event import DocumentEvent, DocumentListener
 import logging
 from java.net import URL
 from java.util import ArrayList
 from threading import Thread
 
-class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
+class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
     MAX_REDIRECTS = 5  # Maximale Anzahl der Umleitungen
     SECLIST_URL = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
     LOG_LEVEL = logging.DEBUG
@@ -61,6 +61,10 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         self._frame.setVisible(True)
 
         # Konfiguration
+        self._configuration_panel.add(JLabel("Base URL:"))
+        self._url_text_field = JTextField(60)
+        self._configuration_panel.add(self._url_text_field)
+        
         self._start_button = JButton("Start", actionPerformed=self.start_bruteforce)
         self._stop_button = JButton("Stop", actionPerformed=self.stop_bruteforce)
         self._stop_button.setEnabled(False)
@@ -120,7 +124,15 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         self._stop_button.setEnabled(True)
         self.results = []
         self.processed_urls = set()
-        thread = Thread(target=self.process_all_urls)
+        base_url = self._url_text_field.getText().strip()
+        
+        if not base_url:
+            JOptionPane.showMessageDialog(self._frame, "Please enter a base URL.", "Error", JOptionPane.ERROR_MESSAGE)
+            self._start_button.setEnabled(True)
+            self._stop_button.setEnabled(False)
+            return
+
+        thread = Thread(target=self.process_url, args=(base_url,))
         thread.start()
 
     def stop_bruteforce(self, event):
@@ -130,45 +142,28 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         self._start_button.setEnabled(True)
         self._stop_button.setEnabled(False)
 
-    def process_all_urls(self):
+    def process_url(self, base_url):
         """
-        Verarbeitet alle URLs.
+        Verarbeitet die eingegebene Basis-URL und führt Directory-Tests durch.
         """
-        # Implementiere die Logik für die Verarbeitung von URLs hier
-        # Dies könnte ein Loop über die Verzeichnisse und URLs sein
-        pass
+        try:
+            if not base_url.startswith("http://") and not base_url.startswith("https://"):
+                base_url = "http://" + base_url
 
-    def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
-        """
-        Verarbeitet HTTP-Nachrichten. Wenn es sich um eine Anfrage handelt,
-        wird die Basis-URL extrahiert und Directory-Tests durchgeführt.
-        """
-        if messageIsRequest:
-            try:
-                request = self._helpers.analyzeRequest(messageInfo)
-                headers = request.getHeaders()
-                base_url = self.get_base_url(headers)
-                if not base_url:
-                    self._logger.error("Base URL could not be determined")
-                    return
+            if base_url in self.processed_urls:
+                self._logger.debug("Base URL already processed: {}".format(base_url))
+                return
 
-                if not base_url.startswith("http://") and not base_url.startswith("https://"):
-                    base_url = "http://" + base_url
+            self.processed_urls.add(base_url)
 
-                if base_url in self.processed_urls:
-                    self._logger.debug("Base URL already processed: {}".format(base_url))
-                    return
+            for directory in self.directories:
+                new_url = self.construct_full_url(base_url, directory.strip())
+                self._logger.debug("Constructed URL: {}".format(new_url))
+                self.send_request(new_url)
 
-                self.processed_urls.add(base_url)
-
-                for directory in self.directories:
-                    new_url = self.construct_full_url(base_url, directory.strip())
-                    self._logger.debug("Constructed URL: {}".format(new_url))
-                    self.send_request(new_url)
-
-                self._logger.info("Completed processing all directories for base URL: {}".format(base_url))
-            except Exception as e:
-                self._logger.error("Error processing HTTP message: {}".format(e))
+            self._logger.info("Completed processing all directories for base URL: {}".format(base_url))
+        except Exception as e:
+            self._logger.error("Error processing URL: {}".format(e))
 
     def send_request(self, url):
         """
@@ -224,45 +219,34 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         """
         request_line = headers[0]
         method, path, _ = request_line.split(' ', 2)
+        if not path:
+            return None
+        return self.construct_full_url(self._base_url, path)
 
+    def construct_full_url(self, base_url, path):
+        """
+        Konstruiert die vollständige URL aus der Basis-URL und dem Pfad.
+        """
+        if base_url.endswith('/'):
+            base_url = base_url[:-1]
         if not path.startswith('/'):
             path = '/' + path
+        return base_url + path
 
-        for header in headers:
-            if header.lower().startswith("host:"):
-                host = header.split(':', 1)[1].strip()
-                break
-        else:
-            host = ""
-
-        return "http://" + host
-
-    def construct_full_url(self, base_url, directory):
+    def update_results(self, result):
         """
-        Konstruiert eine vollständige URL durch Hinzufügen des Verzeichnisnamens zur Basis-URL.
+        Aktualisiert das Ergebnisfeld mit neuen Ergebnissen.
         """
-        if not base_url.endswith('/'):
-            base_url += '/'
-        
-        if directory.startswith('/'):
-            directory = directory[1:]
-        
-        return base_url + directory
-
-    def update_results(self, url):
-        """
-        Aktualisiert das Ergebnis-Textfeld mit neuen URLs.
-        """
-        self._results_text_area.append(url + '\n')
+        self._results_text_area.append(result + '\n')
 
     def update_progress(self, message):
         """
-        Aktualisiert das Fortschritts-Textfeld mit neuen Nachrichten.
+        Aktualisiert das Fortschrittsfeld mit neuen Nachrichten.
         """
         self._progress_text_area.append(message + '\n')
 
-def update_ui_safe(ui_update_function, *args):
+def update_ui_safe(method, *args):
     """
-    Führt die UI-Aktualisierung im Event-Dispatch-Thread aus.
+    Führt die übergebene Methode sicher im Event-Dispatch-Thread aus.
     """
-    SwingUtilities.invokeLater(lambda: ui_update_function(*args))
+    SwingUtilities.invokeLater(lambda: method(*args))
