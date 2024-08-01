@@ -7,6 +7,8 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     MAX_REDIRECTS = 5  # Maximale Anzahl der Umleitungen
     SECLIST_URL = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
     LOG_LEVEL = logging.DEBUG
+    RESULTS_FILE_PATH = 'results.txt'  # Benutzerdefinierbarer Pfad für die Ergebnisdatei
+    ALLOWED_STATUS_CODES = {200, 403, 500}  # Statuscodes, die als interessant betrachtet werden
 
     def registerExtenderCallbacks(self, callbacks):
         """
@@ -102,11 +104,12 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             if response:
                 raw_response = response.getResponse()
                 response_info = self._helpers.analyzeResponse(raw_response)
-                if response_info.getStatusCode() == 200:
+                status_code = response_info.getStatusCode()
+                if status_code in self.ALLOWED_STATUS_CODES:
                     self.results.append(url)
-                    self._logger.debug("Directory found: {}".format(url))
+                    self._logger.debug("Directory found with status code {}: {}".format(status_code, url))
                 else:
-                    self._logger.debug("Received status code {} for URL: {}".format(response_info.getStatusCode(), url))
+                    self._logger.debug("Received status code {} for URL: {}".format(status_code, url))
             else:
                 self._logger.error("Request error for {}: No response received".format(url))
         except Exception as e:
@@ -123,7 +126,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         Speichert die gefundenen Verzeichnisse in einer Datei.
         """
         try:
-            with open('results.txt', 'w') as f:
+            with open(self.RESULTS_FILE_PATH, 'w') as f:
                 for result in self.results:
                     f.write(result + '\n')
         except IOError as e:
