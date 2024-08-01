@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
+from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JOptionPane, SwingUtilities)
+from javax.swing.event import DocumentEvent, DocumentListener
 import logging
 from java.net import URL
+from java.util import ArrayList
+from threading import Thread
 
 class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     MAX_REDIRECTS = 5  # Maximale Anzahl der Umleitungen
@@ -28,7 +32,58 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
         self.directories = []
         self.results = []
         self.processed_urls = set()
-        self.load_seclist()
+
+        # GUI initialisieren
+        self.initialize_gui()
+
+        # SecList im Hintergrund laden
+        self.load_seclist_in_background()
+
+    def initialize_gui(self):
+        """
+        Initialisiert die GUI-Komponenten.
+        """
+        # Panels
+        self._configuration_panel = JPanel()
+        self._results_panel = JPanel()
+        self._progress_panel = JPanel()
+
+        # Tabs
+        self._tabbed_pane = JTabbedPane()
+        self._tabbed_pane.addTab("Configuration", self._configuration_panel)
+        self._tabbed_pane.addTab("Results", self._results_panel)
+        self._tabbed_pane.addTab("Progress", self._progress_panel)
+
+        # Hauptfenster
+        self._frame = JFrame("Directory Bruteforcer", size=(800, 600))
+        self._frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+        self._frame.getContentPane().add(self._tabbed_pane)
+        self._frame.setVisible(True)
+
+        # Konfiguration
+        self._start_button = JButton("Start", actionPerformed=self.start_bruteforce)
+        self._stop_button = JButton("Stop", actionPerformed=self.stop_bruteforce)
+        self._stop_button.setEnabled(False)
+
+        self._configuration_panel.add(self._start_button)
+        self._configuration_panel.add(self._stop_button)
+
+        # Ergebnisse
+        self._results_text_area = JTextArea(20, 60)
+        self._results_text_area.setEditable(False)
+        self._results_panel.add(JScrollPane(self._results_text_area))
+
+        # Fortschritt
+        self._progress_text_area = JTextArea(10, 60)
+        self._progress_text_area.setEditable(False)
+        self._progress_panel.add(JScrollPane(self._progress_text_area))
+
+    def load_seclist_in_background(self):
+        """
+        Lädt die Verzeichnisliste im Hintergrund.
+        """
+        thread = Thread(target=self.load_seclist)
+        thread.start()
 
     def load_seclist(self):
         """
@@ -46,12 +101,42 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                     response_body = raw_response[body_offset:].tostring()
                     self.directories = list(set(response_body.splitlines()))
                     self._logger.info("SecList loaded successfully")
+                    update_ui_safe(self.update_progress, "SecList loaded successfully")
                 else:
                     self._logger.error("Failed to load SecList, status code: {}".format(response_info.getStatusCode()))
+                    update_ui_safe(self.update_progress, "Failed to load SecList, status code: {}".format(response_info.getStatusCode()))
             else:
                 self._logger.error("Failed to load SecList: No response received")
+                update_ui_safe(self.update_progress, "Failed to load SecList: No response received")
         except Exception as e:
             self._logger.error("Error loading SecList: {}".format(e))
+            update_ui_safe(self.update_progress, "Error loading SecList: {}".format(e))
+
+    def start_bruteforce(self, event):
+        """
+        Startet den Bruteforce-Prozess.
+        """
+        self._start_button.setEnabled(False)
+        self._stop_button.setEnabled(True)
+        self.results = []
+        self.processed_urls = set()
+        thread = Thread(target=self.process_all_urls)
+        thread.start()
+
+    def stop_bruteforce(self, event):
+        """
+        Stoppt den Bruteforce-Prozess.
+        """
+        self._start_button.setEnabled(True)
+        self._stop_button.setEnabled(False)
+
+    def process_all_urls(self):
+        """
+        Verarbeitet alle URLs.
+        """
+        # Implementiere die Logik für die Verarbeitung von URLs hier
+        # Dies könnte ein Loop über die Verzeichnisse und URLs sein
+        pass
 
     def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
         """
@@ -108,6 +193,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
                 if status_code in self.ALLOWED_STATUS_CODES:
                     self.results.append(url)
                     self._logger.debug("Directory found with status code {}: {}".format(status_code, url))
+                    update_ui_safe(self.update_results, url)
                 else:
                     self._logger.debug("Received status code {} for URL: {}".format(status_code, url))
             else:
@@ -162,3 +248,21 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             directory = directory[1:]
         
         return base_url + directory
+
+    def update_results(self, url):
+        """
+        Aktualisiert das Ergebnis-Textfeld mit neuen URLs.
+        """
+        self._results_text_area.append(url + '\n')
+
+    def update_progress(self, message):
+        """
+        Aktualisiert das Fortschritts-Textfeld mit neuen Nachrichten.
+        """
+        self._progress_text_area.append(message + '\n')
+
+def update_ui_safe(ui_update_function, *args):
+    """
+    Führt die UI-Aktualisierung im Event-Dispatch-Thread aus.
+    """
+    SwingUtilities.invokeLater(lambda: ui_update_function(*args))
