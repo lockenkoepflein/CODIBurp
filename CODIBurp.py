@@ -220,34 +220,46 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
             with open(self.RESULTS_FILE_PATH, 'w') as f:
                 for url, status_code in self.results:
                     f.write("{} - {}\n".format(url, status_code))
-        except IOError as e:
-            self._logger.error("File error: {}".format(e))
-
-    def construct_full_url(self, base_url, path):
-        """
-        Konstruiert die vollständige URL aus der Basis-URL und dem Pfad.
-        """
-        if base_url.endswith('/'):
-            base_url = base_url[:-1]
-        if not path.startswith('/'):
-            path = '/' + path
-        return base_url + path
+            self._logger.info("Results saved to {}".format(self.RESULTS_FILE_PATH))
+        except Exception as e:
+            self._logger.error("Failed to save results: {}".format(e))
 
     def update_results(self, result_entry):
         """
-        Aktualisiert das Ergebnisfeld mit neuen Ergebnissen.
+        Aktualisiert die Ergebnisse in der GUI.
         """
         self._results_text_area.append(result_entry)
-        self.save_results()
+        self._results_text_area.setCaretPosition(self._results_text_area.getDocument().getLength())
 
-    def update_progress(self, message):
+    def update_progress(self, progress_message):
         """
-        Aktualisiert das Fortschrittsfeld mit neuen Nachrichten.
+        Aktualisiert die Fortschrittsanzeige in der GUI.
         """
-        self._progress_text_area.append(message + '\n')
+        self._progress_text_area.append(progress_message + "\n")
+        self._progress_text_area.setCaretPosition(self._progress_text_area.getDocument().getLength())
+
+    def construct_full_url(self, base_url, directory):
+        """
+        Konstruiert die vollständige URL durch Anhängen des Verzeichnisses an die Basis-URL.
+        """
+        if base_url.endswith("/"):
+            return base_url + directory
+        return base_url + "/" + directory
+
+    def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
+        """
+        Verarbeitet HTTP-Nachrichten, die in Burp Suite empfangen werden.
+        """
+        if messageIsRequest:
+            # Hier können Sie Anfragen verarbeiten, wenn nötig
+            pass
+        else:
+            # Hier können Sie Antworten verarbeiten, wenn nötig
+            pass
 
 def update_ui_safe(method, *args):
     """
-    Führt die übergebene Methode sicher im Event-Dispatch-Thread aus.
+    Führt eine Methode im Event-Dispatch-Thread aus, um sicherzustellen,
+    dass die GUI sicher aktualisiert wird.
     """
     SwingUtilities.invokeLater(lambda: method(*args))
