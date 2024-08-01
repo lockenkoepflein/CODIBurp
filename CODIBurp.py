@@ -6,11 +6,11 @@ from java.net import URL
 from threading import Thread
 
 class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
-    MAX_REDIRECTS = 5  # Maximale Anzahl der Umleitungen
+    MAX_REDIRECTS = 5
     SECLIST_URL = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
     LOG_LEVEL = logging.DEBUG
-    RESULTS_FILE_PATH = 'results.txt'  # Benutzerdefinierbarer Pfad für die Ergebnisdatei
-    ALLOWED_STATUS_CODES = {200, 301, 403, 500}  # Statuscodes, die als interessant betrachtet werden
+    RESULTS_FILE_PATH = 'results.txt'
+    ALLOWED_STATUS_CODES = {200, 301, 403, 500}
 
     def registerExtenderCallbacks(self, callbacks):
         """
@@ -25,17 +25,13 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
 
         logging.basicConfig(level=self.LOG_LEVEL, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self._logger = logging.getLogger("BurpExtender")
-        self._logger.setLevel(self.LOG_LEVEL)
 
         self.directories = []
         self.results = []
         self.processed_urls = set()
-        self.selected_status_codes = {200}  # Standardmäßig 200 OK aktiviert
+        self.selected_status_codes = {200}
 
-        # GUI initialisieren
         self.initialize_gui()
-
-        # SecList im Hintergrund laden
         self.load_seclist_in_background()
 
     def initialize_gui(self):
@@ -101,8 +97,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         """
         Lädt die Verzeichnisliste im Hintergrund.
         """
-        thread = Thread(target=self.load_seclist)
-        thread.start()
+        Thread(target=self.load_seclist).start()
 
     def load_seclist(self):
         """
@@ -141,15 +136,14 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self.processed_urls = set()
         self.selected_status_codes = {int(code) for code, checkbox in self._status_code_checkboxes.items() if checkbox.isSelected()}
         base_url = self._url_text_field.getText().strip()
-        
+
         if not base_url:
             JOptionPane.showMessageDialog(self._frame, "Please enter a base URL.", "Error", JOptionPane.ERROR_MESSAGE)
             self._start_button.setEnabled(True)
             self._stop_button.setEnabled(False)
             return
 
-        thread = Thread(target=self.process_url, args=(base_url,))
-        thread.start()
+        Thread(target=self.process_url, args=(base_url,)).start()
 
     def stop_bruteforce(self, event):
         """
@@ -163,7 +157,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         Verarbeitet die eingegebene Basis-URL und führt Directory-Tests durch.
         """
         try:
-            if not base_url.startswith("http://") and not base_url.startswith("https://"):
+            if not base_url.startswith(("http://", "https://")):
                 base_url = "http://" + base_url
 
             if base_url in self.processed_urls:
@@ -193,7 +187,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
 
             port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
             use_https = parsed_url.getProtocol() == "https"
-            
+
             http_service = self._helpers.buildHttpService(host, port, use_https)
             request = self._helpers.buildHttpRequest(parsed_url)
             response = self._callbacks.makeHttpRequest(http_service, request)
@@ -202,9 +196,9 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
                 response_info = self._helpers.analyzeResponse(raw_response)
                 status_code = response_info.getStatusCode()
                 if status_code in self.selected_status_codes:
+                    result_entry = "{} - {}\n".format(url, status_code)
                     self.results.append((url, status_code))
-                    self._logger.debug("Directory found with status code {}: {}".format(status_code, url))
-                    update_ui_safe(self.update_results, url, status_code)
+                    update_ui_safe(self.update_results, result_entry)
                 else:
                     self._logger.debug("Received status code {} for URL: {}".format(status_code, url))
             else:
@@ -239,13 +233,12 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
             path = '/' + path
         return base_url + path
 
-    def update_results(self, url, status_code):
+    def update_results(self, result_entry):
         """
         Aktualisiert das Ergebnisfeld mit neuen Ergebnissen.
         """
-        result_entry = "{} - {}\n".format(url, status_code)
         self._results_text_area.append(result_entry)
-        self.save_results()  # Speichert alle Ergebnisse bei jeder Aktualisierung
+        self.save_results()
 
     def update_progress(self, message):
         """
