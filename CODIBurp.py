@@ -202,9 +202,9 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
                 response_info = self._helpers.analyzeResponse(raw_response)
                 status_code = response_info.getStatusCode()
                 if status_code in self.selected_status_codes:
-                    self.results.append(url)
+                    self.results.append((url, status_code))
                     self._logger.debug("Directory found with status code {}: {}".format(status_code, url))
-                    update_ui_safe(self.update_results, url)
+                    update_ui_safe(self.update_results, url, status_code)
                 else:
                     self._logger.debug("Received status code {} for URL: {}".format(status_code, url))
             else:
@@ -224,8 +224,8 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         """
         try:
             with open(self.RESULTS_FILE_PATH, 'w') as f:
-                for result in self.results:
-                    f.write(result + '\n')
+                for url, status_code in self.results:
+                    f.write("{} - {}\n".format(url, status_code))
         except IOError as e:
             self._logger.error("File error: {}".format(e))
 
@@ -239,11 +239,11 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
             path = '/' + path
         return base_url + path
 
-    def update_results(self, result):
+    def update_results(self, url, status_code):
         """
         Aktualisiert das Ergebnisfeld mit neuen Ergebnissen.
         """
-        self._results_text_area.append(result + '\n')
+        self._results_text_area.append("{} - {}\n".format(url, status_code))
 
     def update_progress(self, message):
         """
