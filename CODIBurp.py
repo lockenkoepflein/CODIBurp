@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
-from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, SwingUtilities)
-from javax.swing.event import DocumentEvent, DocumentListener
+from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, JCheckBox, SwingUtilities, JOptionPane)
 import logging
 from java.net import URL
-from java.util import ArrayList
 from threading import Thread
 
 class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
@@ -32,6 +30,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self.directories = []
         self.results = []
         self.processed_urls = set()
+        self.selected_status_codes = {200}  # Standardmäßig 200 OK aktiviert
 
         # GUI initialisieren
         self.initialize_gui()
@@ -64,7 +63,23 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._configuration_panel.add(JLabel("Base URL:"))
         self._url_text_field = JTextField(60)
         self._configuration_panel.add(self._url_text_field)
-        
+
+        # Statuscode-Checkboxen
+        self._status_code_panel = JPanel()
+        self._status_code_panel.add(JLabel("Status Codes:"))
+
+        self._status_code_checkboxes = {
+            200: JCheckBox("200 OK", True),
+            301: JCheckBox("301 Moved Permanently"),
+            403: JCheckBox("403 Forbidden"),
+            500: JCheckBox("500 Internal Server Error"),
+        }
+
+        for code, checkbox in self._status_code_checkboxes.items():
+            self._status_code_panel.add(checkbox)
+
+        self._configuration_panel.add(self._status_code_panel)
+
         self._start_button = JButton("Start", actionPerformed=self.start_bruteforce)
         self._stop_button = JButton("Stop", actionPerformed=self.stop_bruteforce)
         self._stop_button.setEnabled(False)
@@ -124,6 +139,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._stop_button.setEnabled(True)
         self.results = []
         self.processed_urls = set()
+        self.selected_status_codes = {int(code) for code, checkbox in self._status_code_checkboxes.items() if checkbox.isSelected()}
         base_url = self._url_text_field.getText().strip()
         
         if not base_url:
@@ -185,7 +201,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
                 raw_response = response.getResponse()
                 response_info = self._helpers.analyzeResponse(raw_response)
                 status_code = response_info.getStatusCode()
-                if status_code in self.ALLOWED_STATUS_CODES:
+                if status_code in self.selected_status_codes:
                     self.results.append(url)
                     self._logger.debug("Directory found with status code {}: {}".format(status_code, url))
                     update_ui_safe(self.update_results, url)
@@ -212,16 +228,6 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
                     f.write(result + '\n')
         except IOError as e:
             self._logger.error("File error: {}".format(e))
-
-    def get_base_url(self, headers):
-        """
-        Extrahiert die Basis-URL aus den Anfrage-Headern.
-        """
-        request_line = headers[0]
-        method, path, _ = request_line.split(' ', 2)
-        if not path:
-            return None
-        return self.construct_full_url(self._base_url, path)
 
     def construct_full_url(self, base_url, path):
         """
