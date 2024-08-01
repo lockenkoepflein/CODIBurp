@@ -112,18 +112,47 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
             http_service = self._helpers.buildHttpService(host, port, use_https)
             # HTTP-Anfrage für die URL erstellen
             request = self._helpers.buildHttpRequest(parsed_url)
-            # HTTP-Anfrage senden und Antwort erhalten
-            response = self._callbacks.makeHttpRequest(http_service, request)
-            if response:
-                raw_response = response.getResponse()
-                response_info = self._helpers.analyzeResponse(raw_response)
-                if response_info.getStatusCode() == 200:
-                    self.results.append(url)  # Gefundene URL zu den Ergebnissen hinzufügen
-                    self._logger.debug("Directory found: {}".format(url))  # Debug-Nachricht loggen
-                else:
-                    self._logger.debug("Received status code {} for URL: {}".format(response_info.getStatusCode(), url))  # Debug-Nachricht mit erhaltenem Statuscode loggen
-            else:
-                self._logger.error("Request error for {}: No response received".format(url))  # Fehler loggen, wenn keine Antwort erhalten
+            
+            # Umleitung verfolgen
+            max_redirects = 5
+            current_url = url
+            for i in range(max_redirects):
+                response = self._callbacks.makeHttpRequest(http_service, request)
+                if response:
+                    raw_response = response.getResponse()
+                    if raw_response:
+                        response_info = self._helpers.analyzeResponse(raw_response)
+                        if response_info:
+                            status_code = response_info.getStatusCode()
+                            if status_code == 200:
+                                self.results.append(current_url)  # Gefundene URL zu den Ergebnissen hinzufügen
+                                self._logger.debug("Directory found: {}".format(current_url))  # Debug-Nachricht loggen
+                                break
+                            elif status_code in [301, 302]:
+                                # Umleitungs-URL extrahieren
+                                headers = response_info.getHeaders()
+                                for header in headers:
+                                    if header.lower().startswith("location:"):
+                                        redirect_url = header.split(':', 1)[1].strip()
+                                        if not redirect_url.startswith("http"):
+                                            redirect_url = "{}{}".format(current_url.rstrip('/'), redirect_url)
+                                        current_url = redirect_url
+                                        parsed_url = URL(current_url)
+                                        http_service = self._helpers.buildHttpService(parsed_url.getHost(), parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80), parsed_url.getProtocol() == "https")
+                                        request = self._helpers.buildHttpRequest(parsed_url)
+                                        self._logger.debug("Redirecting to: {}".format(current_url))  # Debug-Nachricht loggen
+                                        break
+                                else:
+                                    self._logger.error("No location header found for redirect")  # Fehler loggen, wenn kein Location-Header gefunden wurde
+                                    break
+                            else:
+                                self._logger.debug("Received status code {} for URL: {}".format(status_code, current_url))  # Debug-Nachricht mit erhaltenem Statuscode loggen
+                                break
+                        else:
+                            self._logger.error("Failed to analyze response for URL: {}".format(current_url))  # Fehler loggen, wenn analyzeResponse null ist
+                            break
+                    else:
+                        self._logger.error("Request error for {}: No raw response received".format(current_url))  # Fehler loggen, wenn keine Rohantwort erhalten
         except Exception as e:
             self._logger.error("Request error for {}: {}".format(url, e))  # Fehler loggen, wenn beim Senden der Anfrage ein Problem auftritt
 
