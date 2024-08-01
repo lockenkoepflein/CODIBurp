@@ -8,7 +8,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IExtensionStateListener):
     SECLIST_URL = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
     LOG_LEVEL = logging.DEBUG
     RESULTS_FILE_PATH = 'results.txt'  # Benutzerdefinierbarer Pfad für die Ergebnisdatei
-    ALLOWED_STATUS_CODES = {200, 403, 500}  # Statuscodes, die als interessant betrachtet werden
+    ALLOWED_STATUS_CODES = {200, 301, 403, 500}  # Statuscodes, die als interessant betrachtet werden
 
     def registerExtenderCallbacks(self, callbacks):
         """
