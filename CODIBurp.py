@@ -3,7 +3,7 @@ from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpReq
 from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, JCheckBox, SwingUtilities, JOptionPane, BoxLayout, BorderFactory, Box, UIManager)
 import logging
 from java.net import URL
-from threading import Thread
+import threading
 import java.awt.Font as Font
 import java.awt.Component as Component
 
@@ -141,7 +141,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         """
         Lädt die Verzeichnisliste im Hintergrund.
         """
-        Thread(target=self.load_seclist).start()
+        threading.Thread(target=self.load_seclist).start()
 
     def load_seclist(self):
         """
@@ -187,7 +187,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
             self._stop_button.setEnabled(False)
             return
 
-        Thread(target=self.process_url, args=(base_url,)).start()
+        threading.Thread(target=self.process_url, args=(base_url,)).start()
 
     def stop_bruteforce(self, event):
         """
@@ -210,10 +210,17 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
 
             self.processed_urls.add(base_url)
 
+            threads = []
             for directory in self.directories:
                 new_url = self.construct_full_url(base_url, directory.strip())
                 self._logger.debug("Constructed URL: {}".format(new_url))
-                self.send_request(new_url)
+                thread = threading.Thread(target=self.send_request, args=(new_url,))
+                thread.start()
+                threads.append(thread)
+
+            # Warten bis alle Threads abgeschlossen sind
+            for thread in threads:
+                thread.join()
 
             self._logger.info("Completed processing all directories for base URL: {}".format(base_url))
             update_ui_safe(self.update_progress, "Completed processing all directories for base URL: {}".format(base_url))
