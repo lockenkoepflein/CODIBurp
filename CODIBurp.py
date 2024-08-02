@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
-from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, JCheckBox, SwingUtilities, JOptionPane)
+from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, JCheckBox, SwingUtilities, JOptionPane, BoxLayout, Box, BorderFactory)
 import logging
 from java.net import URL
 from threading import Thread
@@ -41,26 +41,35 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         # Panels
         self._main_panel = JPanel()
         self._results_panel = JPanel()
-
+        
         # Tabs
         self._tabbed_pane = JTabbedPane()
         self._tabbed_pane.addTab("Configuration and Progress", self._main_panel)
         self._tabbed_pane.addTab("Results", self._results_panel)
 
         # Hauptfenster
-        self._frame = JFrame("Directory Bruteforcer", size=(800, 600))
+        self._frame = JFrame("Directory Bruteforcer", size=(600, 400))
         self._frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
         self._frame.getContentPane().add(self._tabbed_pane)
         self._frame.setVisible(True)
 
+        # Layout-Manager
+        self._main_panel.setLayout(BoxLayout(self._main_panel, BoxLayout.Y_AXIS))
+        self._results_panel.setLayout(BoxLayout(self._results_panel, BoxLayout.Y_AXIS))
+
         # Konfiguration
-        self._main_panel.add(JLabel("Base URL:"))
-        self._url_text_field = JTextField(60)
-        self._main_panel.add(self._url_text_field)
+        config_panel = JPanel()
+        config_panel.setLayout(BoxLayout(config_panel, BoxLayout.Y_AXIS))
+        config_panel.setBorder(BorderFactory.createTitledBorder("Configuration"))
+
+        config_panel.add(JLabel("Base URL:"))
+        self._url_text_field = JTextField(40)
+        config_panel.add(self._url_text_field)
 
         # Statuscode-Checkboxen
         self._status_code_panel = JPanel()
-        self._status_code_panel.add(JLabel("Status Codes:"))
+        self._status_code_panel.setLayout(BoxLayout(self._status_code_panel, BoxLayout.Y_AXIS))
+        self._status_code_panel.setBorder(BorderFactory.createTitledBorder("Status Codes"))
 
         self._status_code_checkboxes = {
             200: JCheckBox("200 OK", True),
@@ -72,22 +81,32 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         for code, checkbox in self._status_code_checkboxes.items():
             self._status_code_panel.add(checkbox)
 
-        self._main_panel.add(self._status_code_panel)
+        config_panel.add(self._status_code_panel)
 
         self._start_button = JButton("Start", actionPerformed=self.start_bruteforce)
         self._stop_button = JButton("Stop", actionPerformed=self.stop_bruteforce)
         self._stop_button.setEnabled(False)
 
-        self._main_panel.add(self._start_button)
-        self._main_panel.add(self._stop_button)
+        buttons_panel = JPanel()
+        buttons_panel.add(self._start_button)
+        buttons_panel.add(self._stop_button)
+        config_panel.add(buttons_panel)
+
+        self._main_panel.add(config_panel)
 
         # Fortschritt
-        self._progress_text_area = JTextArea(10, 60)
+        progress_panel = JPanel()
+        progress_panel.setLayout(BoxLayout(progress_panel, BoxLayout.Y_AXIS))
+        progress_panel.setBorder(BorderFactory.createTitledBorder("Progress"))
+
+        self._progress_text_area = JTextArea(10, 50)
         self._progress_text_area.setEditable(False)
-        self._main_panel.add(JScrollPane(self._progress_text_area))
+        progress_panel.add(JScrollPane(self._progress_text_area))
+
+        self._main_panel.add(progress_panel)
 
         # Ergebnisse
-        self._results_text_area = JTextArea(20, 60)
+        self._results_text_area = JTextArea(20, 50)
         self._results_text_area.setEditable(False)
         self._results_panel.add(JScrollPane(self._results_text_area))
 
