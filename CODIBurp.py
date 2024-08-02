@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
-from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, JCheckBox, SwingUtilities, JOptionPane, BoxLayout, Box, BorderFactory)
+from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, JCheckBox, SwingUtilities, JOptionPane, BoxLayout, BorderFactory, Box, UIManager)
 import logging
 from java.net import URL
 from threading import Thread
+import java.awt.Font as Font
+import java.awt.Component as Component
 
 class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
     MAX_REDIRECTS = 5
@@ -44,8 +46,8 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         
         # Tabs
         self._tabbed_pane = JTabbedPane()
-        self._tabbed_pane.addTab("Configuration and Progress", self._main_panel)
-        self._tabbed_pane.addTab("Results", self._results_panel)
+        self._tabbed_pane.addTab("<html><b style='font-size:12px;'>Configuration and Progress</b></html>", self._main_panel)
+        self._tabbed_pane.addTab("<html><b style='font-size:12px;'>Results</b></html>", self._results_panel)
 
         # Hauptfenster
         self._frame = JFrame("Directory Bruteforcer", size=(600, 400))
@@ -62,14 +64,30 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         config_panel.setLayout(BoxLayout(config_panel, BoxLayout.Y_AXIS))
         config_panel.setBorder(BorderFactory.createTitledBorder("Configuration"))
 
-        config_panel.add(JLabel("Base URL:"))
+        label_panel = JPanel()
+        label_panel.setLayout(BoxLayout(label_panel, BoxLayout.X_AXIS))
+        label_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
+        base_url_label = JLabel("Base URL:")
+        base_url_label.setFont(Font("Arial", Font.BOLD, 12))
+        label_panel.add(Box.createHorizontalGlue())
+        label_panel.add(base_url_label)
+        label_panel.add(Box.createHorizontalGlue())
+        config_panel.add(label_panel)
+
+        text_field_panel = JPanel()
+        text_field_panel.setLayout(BoxLayout(text_field_panel, BoxLayout.X_AXIS))
+        text_field_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
         self._url_text_field = JTextField(40)
-        config_panel.add(self._url_text_field)
+        text_field_panel.add(Box.createHorizontalGlue())
+        text_field_panel.add(self._url_text_field)
+        text_field_panel.add(Box.createHorizontalGlue())
+        config_panel.add(text_field_panel)
 
         # Statuscode-Checkboxen
         self._status_code_panel = JPanel()
         self._status_code_panel.setLayout(BoxLayout(self._status_code_panel, BoxLayout.Y_AXIS))
         self._status_code_panel.setBorder(BorderFactory.createTitledBorder("Status Codes"))
+        self._status_code_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
 
         self._status_code_checkboxes = {
             200: JCheckBox("200 OK", True),
@@ -79,17 +97,26 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         }
 
         for code, checkbox in self._status_code_checkboxes.items():
+            checkbox.setAlignmentX(Component.CENTER_ALIGNMENT)
+            checkbox.setFont(Font("Arial", Font.PLAIN, 12))
             self._status_code_panel.add(checkbox)
 
         config_panel.add(self._status_code_panel)
+
+        buttons_panel = JPanel()
+        buttons_panel.setLayout(BoxLayout(buttons_panel, BoxLayout.X_AXIS))
+        buttons_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
 
         self._start_button = JButton("Start", actionPerformed=self.start_bruteforce)
         self._stop_button = JButton("Stop", actionPerformed=self.stop_bruteforce)
         self._stop_button.setEnabled(False)
 
-        buttons_panel = JPanel()
+        buttons_panel.add(Box.createHorizontalGlue())
         buttons_panel.add(self._start_button)
+        buttons_panel.add(Box.createHorizontalStrut(10))
         buttons_panel.add(self._stop_button)
+        buttons_panel.add(Box.createHorizontalGlue())
+        
         config_panel.add(buttons_panel)
 
         self._main_panel.add(config_panel)
@@ -190,10 +217,8 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
 
             self._logger.info("Completed processing all directories for base URL: {}".format(base_url))
             update_ui_safe(self.update_progress, "Completed processing all directories for base URL: {}".format(base_url))
-            update_ui_safe(self.update_progress, "All directories have been checked.")
         except Exception as e:
             self._logger.error("Error processing URL: {}".format(e))
-            update_ui_safe(self.update_progress, "Error processing URL: {}".format(e))
 
     def send_request(self, url):
         """
