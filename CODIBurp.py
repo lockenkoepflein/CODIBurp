@@ -46,8 +46,8 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         
         # Tabs
         self._tabbed_pane = JTabbedPane()
-        self._tabbed_pane.addTab("<html><b style='font-size:12px;'>Configuration and Progress</b></html>", self._main_panel)
-        self._tabbed_pane.addTab("<html><b style='font-size:12px;'>Results</b></html>", self._results_panel)
+        self._tabbed_pane.addTab("Configuration and Progress", self._main_panel)
+        self._tabbed_pane.addTab("Results", self._results_panel)
 
         # Hauptfenster
         self._frame = JFrame("Directory Bruteforcer", size=(600, 400))
@@ -68,7 +68,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         label_panel.setLayout(BoxLayout(label_panel, BoxLayout.X_AXIS))
         label_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
         base_url_label = JLabel("Base URL:")
-        base_url_label.setFont(Font("Arial", Font.BOLD, 12))
+        base_url_label.setFont(Font("Arial", Font.PLAIN, 10))  # Schriftgröße und Stil angepasst
         label_panel.add(Box.createHorizontalGlue())
         label_panel.add(base_url_label)
         label_panel.add(Box.createHorizontalGlue())
