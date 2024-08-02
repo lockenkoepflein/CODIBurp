@@ -39,15 +39,13 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         Initialisiert die GUI-Komponenten.
         """
         # Panels
-        self._configuration_panel = JPanel()
+        self._main_panel = JPanel()
         self._results_panel = JPanel()
-        self._progress_panel = JPanel()
 
         # Tabs
         self._tabbed_pane = JTabbedPane()
-        self._tabbed_pane.addTab("Configuration", self._configuration_panel)
+        self._tabbed_pane.addTab("Configuration and Progress", self._main_panel)
         self._tabbed_pane.addTab("Results", self._results_panel)
-        self._tabbed_pane.addTab("Progress", self._progress_panel)
 
         # Hauptfenster
         self._frame = JFrame("Directory Bruteforcer", size=(800, 600))
@@ -56,9 +54,9 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._frame.setVisible(True)
 
         # Konfiguration
-        self._configuration_panel.add(JLabel("Base URL:"))
+        self._main_panel.add(JLabel("Base URL:"))
         self._url_text_field = JTextField(60)
-        self._configuration_panel.add(self._url_text_field)
+        self._main_panel.add(self._url_text_field)
 
         # Statuscode-Checkboxen
         self._status_code_panel = JPanel()
@@ -74,24 +72,24 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         for code, checkbox in self._status_code_checkboxes.items():
             self._status_code_panel.add(checkbox)
 
-        self._configuration_panel.add(self._status_code_panel)
+        self._main_panel.add(self._status_code_panel)
 
         self._start_button = JButton("Start", actionPerformed=self.start_bruteforce)
         self._stop_button = JButton("Stop", actionPerformed=self.stop_bruteforce)
         self._stop_button.setEnabled(False)
 
-        self._configuration_panel.add(self._start_button)
-        self._configuration_panel.add(self._stop_button)
+        self._main_panel.add(self._start_button)
+        self._main_panel.add(self._stop_button)
+
+        # Fortschritt
+        self._progress_text_area = JTextArea(10, 60)
+        self._progress_text_area.setEditable(False)
+        self._main_panel.add(JScrollPane(self._progress_text_area))
 
         # Ergebnisse
         self._results_text_area = JTextArea(20, 60)
         self._results_text_area.setEditable(False)
         self._results_panel.add(JScrollPane(self._results_text_area))
-
-        # Fortschritt
-        self._progress_text_area = JTextArea(10, 60)
-        self._progress_text_area.setEditable(False)
-        self._progress_panel.add(JScrollPane(self._progress_text_area))
 
     def load_seclist_in_background(self):
         """
