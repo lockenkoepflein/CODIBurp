@@ -170,8 +170,11 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
                 self.send_request(new_url)
 
             self._logger.info("Completed processing all directories for base URL: {}".format(base_url))
+            update_ui_safe(self.update_progress, "Completed processing all directories for base URL: {}".format(base_url))
+            update_ui_safe(self.update_progress, "All directories have been checked.")
         except Exception as e:
             self._logger.error("Error processing URL: {}".format(e))
+            update_ui_safe(self.update_progress, "Error processing URL: {}".format(e))
 
     def send_request(self, url):
         """
