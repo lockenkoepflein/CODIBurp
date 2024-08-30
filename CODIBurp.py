@@ -9,7 +9,7 @@ import java.awt.Component as Component
 
 class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
     MAX_REDIRECTS = 5
-    SECLIST_URL = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/testdirectories.txt'
+    SECLIST_URL = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/common.txt'
     LOG_LEVEL = logging.DEBUG
     RESULTS_FILE_PATH = 'results.txt'
     ALLOWED_STATUS_CODES = {200, 301, 403, 500}
