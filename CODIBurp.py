@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
-from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, JCheckBox, SwingUtilities, JOptionPane, BoxLayout, BorderFactory, Box, UIManager)
+from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, JCheckBox, 
+                         SwingUtilities, JOptionPane, BoxLayout, BorderFactory, Box, UIManager, JProgressBar)
 import logging
 from java.net import URL
 import threading
@@ -129,6 +130,11 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._progress_text_area = JTextArea(10, 50)
         self._progress_text_area.setEditable(False)
         progress_panel.add(JScrollPane(self._progress_text_area))
+        
+        # Fortschrittsbalken
+        self._progress_bar = JProgressBar(0, 100)
+        self._progress_bar.setStringPainted(True)
+        progress_panel.add(self._progress_bar)
 
         self._main_panel.add(progress_panel)
 
@@ -186,6 +192,10 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
             self._start_button.setEnabled(True)
             self._stop_button.setEnabled(False)
             return
+        
+        # Fortschrittsbalken zurücksetzen und max. Wert setzen
+        update_ui_safe(self._progress_bar.setValue, 0)
+        update_ui_safe(self._progress_bar.setMaximum, len(self.directories))
 
         threading.Thread(target=self.process_url, args=(base_url,)).start()
 
@@ -257,6 +267,9 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
                 self._logger.error("Request error for {}: No response received".format(url))
         except Exception as e:
             self._logger.error("Request error for {}: {}".format(url, e))
+        finally:
+            # Fortschrittsbalken aktualisieren
+            update_ui_safe(self.increment_progress)
 
     def extensionUnloaded(self):
         """
@@ -289,6 +302,13 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         """
         self._progress_text_area.append(progress_message + "\n")
         self._progress_text_area.setCaretPosition(self._progress_text_area.getDocument().getLength())
+
+    def increment_progress(self):
+        """
+        Erhöht den Fortschritt des Fortschrittsbalkens.
+        """
+        current_value = self._progress_bar.getValue()
+        self._progress_bar.setValue(current_value + 1)
 
     def construct_full_url(self, base_url, directory):
         """
