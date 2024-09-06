@@ -4,25 +4,20 @@ from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, J
                          SwingUtilities, JOptionPane, BoxLayout, BorderFactory, Box, UIManager, JProgressBar)
 import logging
 from java.net import URL
-import threading
 import java.awt.Font as Font
 import java.awt.Component as Component
+import threading
 
 class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
     MAX_REDIRECTS = 5
-    SECLIST_URL = 'https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/main/common.txt'
     LOG_LEVEL = logging.DEBUG
     RESULTS_FILE_PATH = 'results.txt'
     ALLOWED_STATUS_CODES = {200, 301, 403, 500}
 
     def registerExtenderCallbacks(self, callbacks):
-        """
-        Diese Methode wird aufgerufen, wenn die Erweiterung geladen wird.
-        Registriert notwendige Callbacks und initialisiert die Erweiterung.
-        """
         self._callbacks = callbacks
         self._helpers = callbacks.getHelpers()
-        callbacks.setExtensionName("Directory Bruteforcer")
+        callbacks.setExtensionName("Directory and File Bruteforcer")
         callbacks.registerHttpListener(self)
         callbacks.registerExtensionStateListener(self)
 
@@ -30,12 +25,12 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._logger = logging.getLogger("BurpExtender")
 
         self.directories = []
+        self.files = []
         self.results = []
         self.processed_urls = set()
         self.selected_status_codes = {200}
 
         self.initialize_gui()
-        self.load_seclist_in_background()
 
     def initialize_gui(self):
         """
@@ -51,7 +46,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._tabbed_pane.addTab("Results", self._results_panel)
 
         # Hauptfenster
-        self._frame = JFrame("Directory Bruteforcer", size=(600, 400))
+        self._frame = JFrame("Directory and File Bruteforcer", size=(800, 600))  # Größe auf 800x600 erhöht
         self._frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
         self._frame.getContentPane().add(self._tabbed_pane)
         self._frame.setVisible(True)
@@ -65,11 +60,12 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         config_panel.setLayout(BoxLayout(config_panel, BoxLayout.Y_AXIS))
         config_panel.setBorder(BorderFactory.createTitledBorder("Configuration"))
 
+        # Base URL
         label_panel = JPanel()
         label_panel.setLayout(BoxLayout(label_panel, BoxLayout.X_AXIS))
         label_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
         base_url_label = JLabel("Base URL:")
-        base_url_label.setFont(Font("Arial", Font.PLAIN, 10))  # Schriftgröße und Stil angepasst
+        base_url_label.setFont(Font("Arial", Font.PLAIN, 12))  # Schriftgröße auf 12 erhöht
         label_panel.add(Box.createHorizontalGlue())
         label_panel.add(base_url_label)
         label_panel.add(Box.createHorizontalGlue())
@@ -83,6 +79,22 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         text_field_panel.add(self._url_text_field)
         text_field_panel.add(Box.createHorizontalGlue())
         config_panel.add(text_field_panel)
+
+        # Verzeichnisliste
+        directory_label = JLabel("Directory List URL:")
+        directory_label.setFont(Font("Arial", Font.PLAIN, 12))
+        config_panel.add(directory_label)
+
+        self._directory_url_text_field = JTextField(40)
+        config_panel.add(self._directory_url_text_field)
+
+        # Dateiliste
+        file_label = JLabel("File List URL:")
+        file_label.setFont(Font("Arial", Font.PLAIN, 12))
+        config_panel.add(file_label)
+
+        self._file_url_text_field = JTextField(40)
+        config_panel.add(self._file_url_text_field)
 
         # Statuscode-Checkboxen
         self._status_code_panel = JPanel()
@@ -120,8 +132,6 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         
         config_panel.add(buttons_panel)
 
-        self._main_panel.add(config_panel)
-
         # Fortschritt
         progress_panel = JPanel()
         progress_panel.setLayout(BoxLayout(progress_panel, BoxLayout.Y_AXIS))
@@ -136,6 +146,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._progress_bar.setStringPainted(True)
         progress_panel.add(self._progress_bar)
 
+        self._main_panel.add(config_panel)
         self._main_panel.add(progress_panel)
 
         # Ergebnisse
@@ -143,19 +154,97 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._results_text_area.setEditable(False)
         self._results_panel.add(JScrollPane(self._results_text_area))
 
-    def load_seclist_in_background(self):
-        """
-        Lädt die Verzeichnisliste im Hintergrund.
-        """
-        threading.Thread(target=self.load_seclist).start()
+    def start_bruteforce(self, event):
+        self._start_button.setEnabled(False)
+        self._stop_button.setEnabled(True)
+        self.results = []
+        self.processed_urls = set()
+        self.selected_status_codes = {int(code) for code, checkbox in self._status_code_checkboxes.items() if checkbox.isSelected()}
 
-    def load_seclist(self):
+        base_url = self._url_text_field.getText().strip()
+        directory_url = self._directory_url_text_field.getText().strip()
+        file_url = self._file_url_text_field.getText().strip()
+
+        if not base_url or not directory_url or not file_url:
+            JOptionPane.showMessageDialog(self._frame, "Please enter all URLs (Base URL, Directory List URL, File List URL).", "Error", JOptionPane.ERROR_MESSAGE)
+            self._start_button.setEnabled(True)
+            self._stop_button.setEnabled(False)
+            return
+
+        update_ui_safe(self._progress_bar.setValue, 0)
+        threading.Thread(target=self.load_lists_and_process, args=(base_url, directory_url, file_url)).start()
+
+    def load_lists_and_process(self, base_url, directory_url, file_url):
+        try:
+            self.directories = self.load_list_from_url(directory_url)
+            self.files = self.load_list_from_url(file_url)
+
+            total_items = len(self.directories) + len(self.files)
+            update_ui_safe(self._progress_bar.setMaximum, total_items)
+
+            self.process_url(base_url)
+        except Exception as e:
+            self._logger.error("Error loading lists or processing: {}".format(e))
+            update_ui_safe(self.update_progress, "Error: {}".format(e))
+
+    def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
+        if messageIsRequest:
+            request_info = self._helpers.analyzeRequest(messageInfo)
+            url = request_info.getUrl()
+            if url.toString() not in self.processed_urls:
+                self.processed_urls.add(url.toString())
+                threading.Thread(target=self.send_request, args=(url.toString(),)).start()
+
+    def send_request(self, url):
+        try:
+            parsed_url = URL(url)
+            host = parsed_url.getHost()
+            
+            if not host:
+                raise ValueError("Invalid host in URL: {}".format(url))
+
+            port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
+            use_https = parsed_url.getProtocol() == "https"
+
+            self._logger.debug("Sending request to {} on port {}".format(url, port))
+
+            http_service = self._helpers.buildHttpService(host, port, use_https)
+            request = self._helpers.buildHttpRequest(parsed_url)
+            response = self._callbacks.makeHttpRequest(http_service, request)
+
+            if response:
+                raw_response = response.getResponse()
+                response_info = self._helpers.analyzeResponse(raw_response)
+                status_code = response_info.getStatusCode()
+
+                if status_code in self.selected_status_codes:
+                    result_entry = "{} - {}\n".format(url, status_code)
+                    self.results.append((url, status_code))
+                    update_ui_safe(self.update_results, result_entry)
+                else:
+                    self._logger.debug("Received status code {} for URL: {}".format(status_code, url))
+            else:
+                self._logger.error("Request error for {}: No response received".format(url))
+        except Exception as e:
+            self._logger.error("Request error for {}: {}".format(url, e))
+        finally:
+            update_ui_safe(self.increment_progress)
+
+    def stop_bruteforce(self, event):
         """
-        Lädt die Verzeichnisliste (SecList) von der angegebenen URL.
+        Stoppt den Bruteforce-Prozess.
+        """
+        # Hier könnte die Logik zum Stoppen von Threads hinzugefügt werden
+        self._start_button.setEnabled(True)
+        self._stop_button.setEnabled(False)
+
+    def load_list_from_url(self, list_url):
+        """
+        Lädt eine Liste von der angegebenen URL.
         """
         try:
             http_service = self._helpers.buildHttpService("raw.githubusercontent.com", 443, True)
-            request = self._helpers.buildHttpRequest(URL(self.SECLIST_URL))
+            request = self._helpers.buildHttpRequest(URL(list_url))
             response = self._callbacks.makeHttpRequest(http_service, request)
             if response:
                 raw_response = response.getResponse()
@@ -163,52 +252,18 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
                 if response_info.getStatusCode() == 200:
                     body_offset = response_info.getBodyOffset()
                     response_body = raw_response[body_offset:].tostring()
-                    self.directories = list(set(response_body.splitlines()))
-                    self._logger.info("SecList loaded successfully")
-                    update_ui_safe(self.update_progress, "SecList loaded successfully")
+                    return list(set(response_body.splitlines()))
                 else:
-                    self._logger.error("Failed to load SecList, status code: {}".format(response_info.getStatusCode()))
-                    update_ui_safe(self.update_progress, "Failed to load SecList, status code: {}".format(response_info.getStatusCode()))
+                    self._logger.error("Failed to load list from {}, status code: {}".format(list_url, response_info.getStatusCode()))
             else:
-                self._logger.error("Failed to load SecList: No response received")
-                update_ui_safe(self.update_progress, "Failed to load SecList: No response received")
+                self._logger.error("No response received when loading list from {}".format(list_url))
         except Exception as e:
-            self._logger.error("Error loading SecList: {}".format(e))
-            update_ui_safe(self.update_progress, "Error loading SecList: {}".format(e))
-
-    def start_bruteforce(self, event):
-        """
-        Startet den Bruteforce-Prozess.
-        """
-        self._start_button.setEnabled(False)
-        self._stop_button.setEnabled(True)
-        self.results = []
-        self.processed_urls = set()
-        self.selected_status_codes = {int(code) for code, checkbox in self._status_code_checkboxes.items() if checkbox.isSelected()}
-        base_url = self._url_text_field.getText().strip()
-
-        if not base_url:
-            JOptionPane.showMessageDialog(self._frame, "Please enter a base URL.", "Error", JOptionPane.ERROR_MESSAGE)
-            self._start_button.setEnabled(True)
-            self._stop_button.setEnabled(False)
-            return
-        
-        # Fortschrittsbalken zurücksetzen und max. Wert setzen
-        update_ui_safe(self._progress_bar.setValue, 0)
-        update_ui_safe(self._progress_bar.setMaximum, len(self.directories))
-
-        threading.Thread(target=self.process_url, args=(base_url,)).start()
-
-    def stop_bruteforce(self, event):
-        """
-        Stoppt den Bruteforce-Prozess.
-        """
-        self._start_button.setEnabled(True)
-        self._stop_button.setEnabled(False)
+            self._logger.error("Error loading list from {}: {}".format(list_url, e))
+        return []
 
     def process_url(self, base_url):
         """
-        Verarbeitet die eingegebene Basis-URL und führt Directory-Tests durch.
+        Verarbeitet die eingegebene Basis-URL und führt Directory- und Dateitests durch.
         """
         try:
             if not base_url.startswith(("http://", "https://")):
@@ -223,115 +278,63 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
             threads = []
             for directory in self.directories:
                 new_url = self.construct_full_url(base_url, directory.strip())
-                self._logger.debug("Constructed URL: {}".format(new_url))
+                self._logger.debug("Constructed URL for directory: {}".format(new_url))
                 thread = threading.Thread(target=self.send_request, args=(new_url,))
                 thread.start()
                 threads.append(thread)
 
-            # Warten bis alle Threads abgeschlossen sind
+            for file in self.files:
+                new_url = self.construct_full_url(base_url, file.strip())
+                self._logger.debug("Constructed URL for file: {}".format(new_url))
+                thread = threading.Thread(target=self.send_request, args=(new_url,))
+                thread.start()
+                threads.append(thread)
+
             for thread in threads:
                 thread.join()
 
-            self._logger.info("Completed processing all directories for base URL: {}".format(base_url))
-            update_ui_safe(self.update_progress, "Completed processing all directories for base URL: {}".format(base_url))
+            self._logger.info("Completed processing all directories and files for base URL: {}".format(base_url))
+            update_ui_safe(self.update_progress, "Completed processing all directories and files for base URL: {}".format(base_url))
         except Exception as e:
             self._logger.error("Error processing URL: {}".format(e))
 
-    def send_request(self, url):
+    def construct_full_url(self, base_url, path):
         """
-        Sendet eine HTTP-Anfrage an die angegebene URL und prüft die Antwort.
+        Baut eine vollständige URL basierend auf der Basis-URL und dem Pfad.
         """
-        try:
-            parsed_url = URL(url)
-            host = parsed_url.getHost()
-            if not host:
-                raise ValueError("Invalid host in URL: {}".format(url))
+        if not base_url.endswith("/"):
+            base_url += "/"
+        return base_url + path
 
-            port = parsed_url.getPort() if parsed_url.getPort() != -1 else (443 if parsed_url.getProtocol() == "https" else 80)
-            use_https = parsed_url.getProtocol() == "https"
+    def update_results(self, result_entry):
+        """
+        Aktualisiert den Ergebnisbereich der GUI.
+        """
+        self._results_text_area.append(result_entry)
 
-            http_service = self._helpers.buildHttpService(host, port, use_https)
-            request = self._helpers.buildHttpRequest(parsed_url)
-            response = self._callbacks.makeHttpRequest(http_service, request)
-            if response:
-                raw_response = response.getResponse()
-                response_info = self._helpers.analyzeResponse(raw_response)
-                status_code = response_info.getStatusCode()
-                if status_code in self.selected_status_codes:
-                    result_entry = "{} - {}\n".format(url, status_code)
-                    self.results.append((url, status_code))
-                    update_ui_safe(self.update_results, result_entry)
-                else:
-                    self._logger.debug("Received status code {} for URL: {}".format(status_code, url))
-            else:
-                self._logger.error("Request error for {}: No response received".format(url))
-        except Exception as e:
-            self._logger.error("Request error for {}: {}".format(url, e))
-        finally:
-            # Fortschrittsbalken aktualisieren
-            update_ui_safe(self.increment_progress)
+    def update_progress(self, progress_message):
+        """
+        Aktualisiert den Fortschrittsbereich der GUI.
+        """
+        self._progress_text_area.append(progress_message + "\n")
+
+    def increment_progress(self):
+        """
+        Erhöht den Fortschrittsbalken um einen Schritt.
+        """
+        current_value = self._progress_bar.getValue()
+        max_value = self._progress_bar.getMaximum()
+        if current_value < max_value:
+            self._progress_bar.setValue(current_value + 1)
 
     def extensionUnloaded(self):
         """
         Wird aufgerufen, wenn die Erweiterung entladen wird.
         """
-        self.save_results()
+        self._logger.info("Extension was unloaded.")
 
-    def save_results(self):
-        """
-        Speichert die gefundenen Verzeichnisse in einer Datei.
-        """
-        try:
-            with open(self.RESULTS_FILE_PATH, 'w') as f:
-                for url, status_code in self.results:
-                    f.write("{} - {}\n".format(url, status_code))
-            self._logger.info("Results saved to {}".format(self.RESULTS_FILE_PATH))
-        except Exception as e:
-            self._logger.error("Failed to save results: {}".format(e))
-
-    def update_results(self, result_entry):
-        """
-        Aktualisiert die Ergebnisse in der GUI.
-        """
-        self._results_text_area.append(result_entry)
-        self._results_text_area.setCaretPosition(self._results_text_area.getDocument().getLength())
-
-    def update_progress(self, progress_message):
-        """
-        Aktualisiert die Fortschrittsanzeige in der GUI.
-        """
-        self._progress_text_area.append(progress_message + "\n")
-        self._progress_text_area.setCaretPosition(self._progress_text_area.getDocument().getLength())
-
-    def increment_progress(self):
-        """
-        Erhöht den Fortschritt des Fortschrittsbalkens.
-        """
-        current_value = self._progress_bar.getValue()
-        self._progress_bar.setValue(current_value + 1)
-
-    def construct_full_url(self, base_url, directory):
-        """
-        Konstruiert die vollständige URL durch Anhängen des Verzeichnisses an die Basis-URL.
-        """
-        if base_url.endswith("/"):
-            return base_url + directory
-        return base_url + "/" + directory
-
-    def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
-        """
-        Verarbeitet HTTP-Nachrichten, die in Burp Suite empfangen werden.
-        """
-        if messageIsRequest:
-            # Hier können Sie Anfragen verarbeiten, wenn nötig
-            pass
-        else:
-            # Hier können Sie Antworten verarbeiten, wenn nötig
-            pass
-
-def update_ui_safe(method, *args):
+def update_ui_safe(func, *args, **kwargs):
     """
-    Führt eine Methode im Event-Dispatch-Thread aus, um sicherzustellen,
-    dass die GUI sicher aktualisiert wird.
+    Führt eine GUI-Änderung sicher im Event-Dispatch-Thread (EDT) aus.
     """
-    SwingUtilities.invokeLater(lambda: method(*args))
+    SwingUtilities.invokeLater(lambda: func(*args, **kwargs))
