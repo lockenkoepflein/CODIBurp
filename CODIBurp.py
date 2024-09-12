@@ -7,6 +7,7 @@ from java.net import URL
 import java.awt.Font as Font
 import java.awt.Component as Component
 import threading
+import re
 
 class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
     MAX_REDIRECTS = 5
@@ -29,6 +30,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self.results = []
         self.processed_urls = set()
         self.selected_status_codes = {200}
+        self._stop_requested = False
 
         self.initialize_gui()
 
@@ -155,6 +157,9 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._results_panel.add(JScrollPane(self._results_text_area))
 
     def start_bruteforce(self, event):
+        """
+        Startet den Bruteforce-Prozess. Liest die Eingaben aus, überprüft die URLs und startet den Verarbeitungsprozess.
+        """
         self._start_button.setEnabled(False)
         self._stop_button.setEnabled(True)
         self.results = []
@@ -165,8 +170,16 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         directory_url = self._directory_url_text_field.getText().strip()
         file_url = self._file_url_text_field.getText().strip()
 
+        # Überprüfen, ob alle Felder ausgefüllt sind
         if not base_url or not directory_url or not file_url:
-            JOptionPane.showMessageDialog(self._frame, "Please enter all URLs (Base URL, Directory List URL, File List URL).", "Error", JOptionPane.ERROR_MESSAGE)
+            JOptionPane.showMessageDialog(self._frame, "Please fill in all URL fields.", "Error", JOptionPane.ERROR_MESSAGE)
+            self._start_button.setEnabled(True)
+            self._stop_button.setEnabled(False)
+            return
+
+        # Validieren der Basis-URL
+        if not self.is_valid_url(base_url):
+            JOptionPane.showMessageDialog(self._frame, "The Base URL is invalid. Please enter a valid URL.", "Error", JOptionPane.ERROR_MESSAGE)
             self._start_button.setEnabled(True)
             self._stop_button.setEnabled(False)
             return
@@ -174,7 +187,26 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         update_ui_safe(self._progress_bar.setValue, 0)
         threading.Thread(target=self.load_lists_and_process, args=(base_url, directory_url, file_url)).start()
 
+    def is_valid_url(self, url):
+        """
+        Überprüft, ob die angegebene URL gültig ist.
+        Eine URL ist gültig, wenn sie entweder ein vollständiges Format wie 'http://host:port/path' oder 'https://host/path' hat.
+        """
+        # Regex für einfache URL-Validierung
+        regex = re.compile(
+            r'^(?:http|https)://'  # Protokoll
+            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}|[A-Z0-9-]{2,})|'  # Domäne
+            r'localhost|'  # oder localhost
+            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|'  # oder IPv4-Adresse
+            r'\[?[A-F0-9]*:[A-F0-9:]+\]?)'  # oder IPv6-Adresse
+            r'(?::\d+)?'  # Port
+            r'(?:/?|[/?]\S+)$', re.IGNORECASE)  # Pfad
+        return re.match(regex, url) is not None
+
     def load_lists_and_process(self, base_url, directory_url, file_url):
+        """
+        Lädt die Verzeichnisse und Dateien von den angegebenen URLs und beginnt mit der Verarbeitung.
+        """
         try:
             self.directories = self.load_list_from_url(directory_url)
             self.files = self.load_list_from_url(file_url)
@@ -188,6 +220,9 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
             update_ui_safe(self.update_progress, "Error: {}".format(e))
 
     def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
+        """
+        Verarbeitet HTTP-Nachrichten, die an Burp Suite gesendet werden.
+        """
         if messageIsRequest:
             request_info = self._helpers.analyzeRequest(messageInfo)
             url = request_info.getUrl()
@@ -196,6 +231,9 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
                 threading.Thread(target=self.send_request, args=(url.toString(),)).start()
 
     def send_request(self, url):
+        """
+        Sendet eine HTTP-Anfrage an die angegebene URL und verarbeitet die Antwort.
+        """
         try:
             parsed_url = URL(url)
             host = parsed_url.getHost()
@@ -234,7 +272,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         """
         Stoppt den Bruteforce-Prozess.
         """
-        # Hier könnte die Logik zum Stoppen von Threads hinzugefügt werden
+        self._stop_requested = True
         self._start_button.setEnabled(True)
         self._stop_button.setEnabled(False)
 
