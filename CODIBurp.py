@@ -253,7 +253,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
             response = self._callbacks.makeHttpRequest(http_service, request)
 
             # Zeitliche Verzögerung hinzufügen
-            time.sleep(random.uniform(0.1, 0.5))
+            time.sleep(random.uniform(0.01, 0.05))
 
             if response:
                 raw_response = response.getResponse()
