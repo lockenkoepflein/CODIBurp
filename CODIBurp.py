@@ -8,6 +8,8 @@ import java.awt.Font as Font
 import java.awt.Component as Component
 import threading
 import re
+import random
+import time
 
 class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
     MAX_REDIRECTS = 5
@@ -249,6 +251,9 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
             http_service = self._helpers.buildHttpService(host, port, use_https)
             request = self._helpers.buildHttpRequest(parsed_url)
             response = self._callbacks.makeHttpRequest(http_service, request)
+
+            # Zeitliche Verzögerung hinzufügen
+            time.sleep(random.uniform(0.1, 0.5))
 
             if response:
                 raw_response = response.getResponse()
