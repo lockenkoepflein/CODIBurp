@@ -126,12 +126,17 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
 
         self._start_button = JButton("Start", actionPerformed=self.start_bruteforce)
         self._stop_button = JButton("Stop", actionPerformed=self.stop_bruteforce)
+        self._save_button = JButton("Save Results", actionPerformed=self.save_results_to_file)
+        
         self._stop_button.setEnabled(False)
+        self._save_button.setEnabled(False)
 
         buttons_panel.add(Box.createHorizontalGlue())
         buttons_panel.add(self._start_button)
         buttons_panel.add(Box.createHorizontalStrut(10))
         buttons_panel.add(self._stop_button)
+        buttons_panel.add(Box.createHorizontalStrut(10))
+        buttons_panel.add(self._save_button)
         buttons_panel.add(Box.createHorizontalGlue())
         
         config_panel.add(buttons_panel)
@@ -164,6 +169,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         """
         self._start_button.setEnabled(False)
         self._stop_button.setEnabled(True)
+        self._save_button.setEnabled(False)
         self.results = []
         self.processed_urls = set()
         self.selected_status_codes = {int(code) for code, checkbox in self._status_code_checkboxes.items() if checkbox.isSelected()}
@@ -280,7 +286,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._stop_requested = True
         self._start_button.setEnabled(True)
         self._stop_button.setEnabled(False)
-        self.save_results_to_file()
+        self._save_button.setEnabled(True)
 
     def load_list_from_url(self, list_url):
         """
@@ -371,7 +377,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         if current_value < max_value:
             self._progress_bar.setValue(current_value + 1)
 
-    def save_results_to_file(self):
+    def save_results_to_file(self, event=None):
         """
         Speichert die Ergebnisse in die RESULTS_FILE_PATH-Datei.
         """
