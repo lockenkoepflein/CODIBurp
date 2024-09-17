@@ -345,6 +345,8 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
 
             self._logger.info("Completed processing all directories and files for base URL: {}".format(base_url))
             update_ui_safe(self.update_progress, "Completed processing all directories and files for base URL: {}".format(base_url))
+            # Aktivierung des Save-Buttons nach Abschluss der Verarbeitung
+            update_ui_safe(self._save_button.setEnabled, True)
         except Exception as e:
             self._logger.error("Error processing URL: {}".format(e))
 
