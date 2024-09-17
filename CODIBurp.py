@@ -14,7 +14,7 @@ import time
 class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
     MAX_REDIRECTS = 5
     LOG_LEVEL = logging.DEBUG
-    RESULTS_FILE_PATH = 'results.txt'
+    RESULTS_FILE_PATH = 'Results.txt'
     ALLOWED_STATUS_CODES = {200, 301, 403, 500}
 
     def registerExtenderCallbacks(self, callbacks):
@@ -280,6 +280,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._stop_requested = True
         self._start_button.setEnabled(True)
         self._stop_button.setEnabled(False)
+        self.save_results_to_file()
 
     def load_list_from_url(self, list_url):
         """
@@ -370,11 +371,24 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         if current_value < max_value:
             self._progress_bar.setValue(current_value + 1)
 
+    def save_results_to_file(self):
+        """
+        Speichert die Ergebnisse in die RESULTS_FILE_PATH-Datei.
+        """
+        try:
+            with open(self.RESULTS_FILE_PATH, 'w') as file:
+                for url, status_code in self.results:
+                    file.write("{} - {}\n".format(url, status_code))
+            self._logger.info("Results saved to file: {}".format(self.RESULTS_FILE_PATH))
+        except Exception as e:
+            self._logger.error("Error saving results to file: {}".format(e))
+
     def extensionUnloaded(self):
         """
         Wird aufgerufen, wenn die Erweiterung entladen wird.
         """
         self._logger.info("Extension was unloaded.")
+        self.save_results_to_file()
 
 def update_ui_safe(func, *args, **kwargs):
     """
