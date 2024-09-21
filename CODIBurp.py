@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from burp import IBurpExtender, IExtensionStateListener, IHttpListener, IHttpRequestResponse
-from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, JCheckBox, 
-                         SwingUtilities, JOptionPane, BoxLayout, BorderFactory, Box, UIManager, JProgressBar)
+from javax.swing import (JPanel, JButton, JTextArea, JScrollPane, JTabbedPane, JFrame, JLabel, JTextField, JCheckBox,
+                         JRadioButton, ButtonGroup, SwingUtilities, JOptionPane, BoxLayout, BorderFactory, Box, UIManager, JProgressBar)
 import logging
 from java.net import URL
 import java.awt.Font as Font
@@ -16,6 +16,14 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
     LOG_LEVEL = logging.DEBUG
     RESULTS_FILE_PATH = 'Results.txt'
     ALLOWED_STATUS_CODES = {200, 301, 403, 500}
+    
+    # Klassenvariable für Zeitverzögerungen
+    TIME_DELAY_LOW = (0.01, 0.03)
+    TIME_DELAY_MEDIUM = (0.03, 0.05)
+    TIME_DELAY_HIGH = (0.05, 0.1)
+    
+    def __init__(self):
+        self.delay_range = self.TIME_DELAY_MEDIUM  # Standardmäßig auf Medium gesetzt
 
     def registerExtenderCallbacks(self, callbacks):
         self._callbacks = callbacks
@@ -120,6 +128,25 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
 
         config_panel.add(self._status_code_panel)
 
+        # Zeitverzögerung
+        delay_panel = JPanel()
+        delay_panel.setLayout(BoxLayout(delay_panel, BoxLayout.Y_AXIS))
+        delay_panel.setBorder(BorderFactory.createTitledBorder("Request Delay"))
+        
+        self.delay_buttons = {
+            "Low": JRadioButton("Low Delay"),
+            "Medium": JRadioButton("Medium Delay", True),
+            "High": JRadioButton("High Delay"),
+        }
+
+        button_group = ButtonGroup()
+        for text, button in self.delay_buttons.items():
+            button_group.add(button)
+            button.addActionListener(lambda e, t=text: self.set_delay(t))
+            delay_panel.add(button)
+
+        config_panel.add(delay_panel)
+
         buttons_panel = JPanel()
         buttons_panel.setLayout(BoxLayout(buttons_panel, BoxLayout.X_AXIS))
         buttons_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
@@ -162,6 +189,17 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._results_text_area = JTextArea(20, 50)
         self._results_text_area.setEditable(False)
         self._results_panel.add(JScrollPane(self._results_text_area))
+
+    def set_delay(self, level):
+        """
+        Setzt die Zeitverzögerung basierend auf dem ausgewählten Niveau.
+        """
+        if level == "Low":
+            self.delay_range = self.TIME_DELAY_LOW
+        elif level == "Medium":
+            self.delay_range = self.TIME_DELAY_MEDIUM
+        elif level == "High":
+            self.delay_range = self.TIME_DELAY_HIGH
 
     def start_bruteforce(self, event):
         """
@@ -259,7 +297,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
             response = self._callbacks.makeHttpRequest(http_service, request)
 
             # Zeitliche Verzögerung hinzufügen
-            time.sleep(random.uniform(0.01, 0.05))
+            time.sleep(random.uniform(*self.delay_range))
 
             if response:
                 raw_response = response.getResponse()
