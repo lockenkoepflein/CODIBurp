@@ -28,7 +28,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
     def registerExtenderCallbacks(self, callbacks):
         self._callbacks = callbacks
         self._helpers = callbacks.getHelpers()
-        callbacks.setExtensionName("Directory and File Bruteforcer")
+        callbacks.setExtensionName("CODIBurp")
         callbacks.registerHttpListener(self)
         callbacks.registerExtensionStateListener(self)
 
@@ -58,7 +58,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._tabbed_pane.addTab("Results", self._results_panel)
 
         # Hauptfenster
-        self._frame = JFrame("Directory and File Bruteforcer", size=(800, 600))
+        self._frame = JFrame("CODIBurp", size=(800, 600))
         self._frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
         self._frame.getContentPane().add(self._tabbed_pane)
         self._frame.setVisible(True)
