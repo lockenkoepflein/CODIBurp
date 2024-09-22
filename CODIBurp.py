@@ -132,6 +132,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         delay_panel = JPanel()
         delay_panel.setLayout(BoxLayout(delay_panel, BoxLayout.Y_AXIS))
         delay_panel.setBorder(BorderFactory.createTitledBorder("Request Delay"))
+        delay_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
         
         self.delay_buttons = {
             "Low": JRadioButton("Low Delay"),
