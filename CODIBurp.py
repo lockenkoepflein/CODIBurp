@@ -58,7 +58,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         self._tabbed_pane.addTab("Results", self._results_panel)
 
         # Hauptfenster
-        self._frame = JFrame("Directory and File Bruteforcer", size=(800, 600))  # Größe auf 800x600 erhöht
+        self._frame = JFrame("Directory and File Bruteforcer", size=(800, 600))
         self._frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
         self._frame.getContentPane().add(self._tabbed_pane)
         self._frame.setVisible(True)
@@ -71,13 +71,14 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         config_panel = JPanel()
         config_panel.setLayout(BoxLayout(config_panel, BoxLayout.Y_AXIS))
         config_panel.setBorder(BorderFactory.createTitledBorder("Configuration"))
+        config_panel.setFont(Font("Arial", Font.BOLD, 10))
 
         # Base URL
         label_panel = JPanel()
         label_panel.setLayout(BoxLayout(label_panel, BoxLayout.X_AXIS))
         label_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
         base_url_label = JLabel("Base URL:")
-        base_url_label.setFont(Font("Arial", Font.PLAIN, 10))  # Schriftgröße auf 12 erhöht
+        base_url_label.setFont(Font("Arial", Font.PLAIN, 10))
         label_panel.add(Box.createHorizontalGlue())
         label_panel.add(base_url_label)
         label_panel.add(Box.createHorizontalGlue())
@@ -175,6 +176,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         progress_panel = JPanel()
         progress_panel.setLayout(BoxLayout(progress_panel, BoxLayout.Y_AXIS))
         progress_panel.setBorder(BorderFactory.createTitledBorder("Progress"))
+        progress.panel.setFont(Font("Arial", Font.BOLD, 10)))
 
         self._progress_text_area = JTextArea(10, 50)
         self._progress_text_area.setEditable(False)
