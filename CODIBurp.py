@@ -176,7 +176,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         progress_panel = JPanel()
         progress_panel.setLayout(BoxLayout(progress_panel, BoxLayout.Y_AXIS))
         progress_panel.setBorder(BorderFactory.createTitledBorder("Progress"))
-        progress.panel.setFont(Font("Arial", Font.BOLD, 10)))
+        progress.panel.setFont(Font("Arial", Font.BOLD, 10))
 
         self._progress_text_area = JTextArea(10, 50)
         self._progress_text_area.setEditable(False)
