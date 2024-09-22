@@ -77,7 +77,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         label_panel.setLayout(BoxLayout(label_panel, BoxLayout.X_AXIS))
         label_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
         base_url_label = JLabel("Base URL:")
-        base_url_label.setFont(Font("Arial", Font.PLAIN, 12))  # Schriftgröße auf 12 erhöht
+        base_url_label.setFont(Font("Arial", Font.PLAIN, 10))  # Schriftgröße auf 12 erhöht
         label_panel.add(Box.createHorizontalGlue())
         label_panel.add(base_url_label)
         label_panel.add(Box.createHorizontalGlue())
@@ -94,7 +94,8 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
 
         # Verzeichnisliste
         directory_label = JLabel("Directory List URL:")
-        directory_label.setFont(Font("Arial", Font.PLAIN, 12))
+        directory_label.setFont(Font("Arial", Font.PLAIN, 10))
+        directory_label.setAlignmentX(Component.CENTER_ALIGNMENT)
         config_panel.add(directory_label)
 
         self._directory_url_text_field = JTextField(40)
@@ -102,7 +103,8 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
 
         # Dateiliste
         file_label = JLabel("File List URL:")
-        file_label.setFont(Font("Arial", Font.PLAIN, 12))
+        file_label.setFont(Font("Arial", Font.PLAIN, 10))
+        file_label.setAlignmentX(Component.CENTER_ALIGNMENT)
         config_panel.add(file_label)
 
         self._file_url_text_field = JTextField(40)
