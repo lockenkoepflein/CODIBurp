@@ -1,23 +1,10 @@
-# Code of conduct/Verhaltenskodex
+# Code of Conduct / Verhaltenskodex
 
-## Preamble/Präambel
+## Präambel
 
-Ich, die Entwicklerin dieser Burp Suite-Erweiterung, verpflichte mich, die Nutzung dieser Software auf ethische und legale Weise zu fördern. Dieser Verhaltenskodex legt die Standards für die Nutzung der Erweiterung fest und betont die Bedeutung einer verantwortungsvollen und respektvollen Nutzung. Nutzer der Erweiterung sind dazu verpflichtet, sie ausschließlich für legale Zwecke zu verwenden.<br><br>
-I, the developer of this Burp Suite extension, am committed to promoting the use of this software in an ethical and legal manner. This code of conduct sets the standards for the use of the extension and emphasizes the importance of responsible and respectful use. Users of the extension are obliged to use it exclusively for legal purposes.
+Ich, die Entwicklerin dieser Burp Suite-Erweiterung, verpflichte mich, die Nutzung dieser Software auf ethische und legale Weise zu fördern. Dieser Verhaltenskodex legt die Standards für die Nutzung der Erweiterung fest und betont die Bedeutung einer verantwortungsvollen und respektvollen Nutzung. Nutzer der Erweiterung sind dazu verpflichtet, sie ausschließlich für legale Zwecke zu verwenden.
 
-## Standards for use/Standards für die Nutzung
-
-Examples of acceptable use:
-
-- **Security Research and Penetration Testing**: Using the extension to identify and remediate vulnerabilities in your own systems or with explicit permission from the owner of the systems.
-- **Educational purposes**: Use the extension for learning and teaching purposes to promote understanding of security technologies.
-
-Examples of unacceptable use:
-
-- **Unauthorized access**: Using the extension to intrude into systems without explicit permission.
-- **Data tampering or theft**: Using the extension to manipulate, steal, or delete data without permission.
-- **Service Disruption**: Use the extension to disrupt or disable services or networks.
-- **Illegal Activities**: Any use of the Extension that violates applicable laws and regulations.
+## Standards für die Nutzung
 
 Beispiele für akzeptable Nutzung:
 
@@ -31,12 +18,10 @@ Beispiele für inakzeptable Nutzung:
 - **Störung von Diensten**: Verwenden der Erweiterung zum Stören oder Lahmlegen von Diensten oder Netzwerken.
 - **Illegale Aktivitäten**: Jegliche Nutzung der Erweiterung, die gegen geltende Gesetze und Vorschriften verstößt.
 
-## Enforcement/Durchsetzung
+## Durchsetzung
 
-Verstöße gegen diesen Verhaltenskodex können zu Sanktionen führen, einschließlich der Möglichkeit, die Nutzung der Erweiterung zu untersagen oder rechtliche Schritte einzuleiten. Fälle von missbräuchlicher oder illegaler Nutzung können den zuständigen Behörden gemeldet werden.<br><br>
-Violations of this Code of Conduct may result in sanctions, including the ability to prohibit the use of the extension or take legal action. Cases of misuse or illegal use can be reported to the competent authorities.
+Verstöße gegen diesen Verhaltenskodex können zu Sanktionen führen, einschließlich der Möglichkeit, die Nutzung der Erweiterung zu untersagen oder rechtliche Schritte einzuleiten. Fälle von missbräuchlicher oder illegaler Nutzung können den zuständigen Behörden gemeldet werden.
 
-## Concluding remark/Schlussbemerkung
+## Schlussbemerkung
 
-Dieser Verhaltenskodex soll sicherstellen, dass diese Erweiterung verantwortungsvoll und ethisch verwendet wird. Wir danken allen Nutzern für ihre Kooperation und ihr Engagement, diese Standards einzuhalten.<br><br>
-This Code of Conduct is designed to ensure that this extension is used responsibly and ethically. We thank all users for their cooperation and commitment to complying with these standards.
+Dieser Verhaltenskodex soll sicherstellen, dass diese Erweiterung verantwortungsvoll und ethisch verwendet wird. Wir danken allen Nutzern für ihre Kooperation und ihr Engagement, diese Standards einzuhalten.
