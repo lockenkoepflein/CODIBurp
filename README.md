@@ -1,87 +1,39 @@
-# BurpSuite Extension - Content Discovery/Inhaltserkennung
+# Burp Suite Extension „CODIBurp“
 
-## Status
-This project is under development. Features and implementations may not yet be complete or stable.<br>Dieses Projekt befindet sich in der Entwicklung. Funktionen und Implementierungen sind möglicherweise noch nicht vollständig oder stabil.
+## Beschreibung
+Eine Inhaltserkennungs-Erweiterung für Burp Suite - Das automatisierte Auffinden verborgener Verzeichnisse und Dateien auf Webservern zur Identifizierung potenzieller Sicherheitslücken.
 
-## Description/Beschreibung
-A Content Discovery Extension for Burp Suite - The automated discovery of hidden directories on web servers to identify potential security vulnerabilities.<br>Eine Inhaltserkennungs-Erweiterung für Burp Suite - Das automatisierte Auffinden verborgener Verzeichnisse auf Webservern zur Identifizierung potenzieller Sicherheitslücken.
+## Installation/Einrichtung
+1. Burp Suite Community Edition installieren: [Download Burp Suite Community Edition - PortSwigger](https://portswigger.net/burp/communitydownload)
+2. Jython standalone jar-Datei herunterladen: [Downloads | Jython](https://www.jython.org/download)
+   (hier unter Jython Standalone); es ist die Datei mit dem Format „jython-standalone-X.X.X.jar“
+3. Burp Suite starten.
+4. Einstellungen in Burp Suite Settings unter Extensions vornehmen:
+   Hier in die entsprechenden Felder das Jython Standalone JAR-Datei und ggf. den Pfad für die Extension hinterlegen.
+5. CODIBurp.py-Datei aus GitHub-Repository herunterladen: [CODIBurp/CODIBurp.py at main · lockenkoepflein/CODIBurp · GitHub](https://github.com/lockenkoepflein/CODIBurp/blob/main/CODIBurp.py) und in dem Verzeichnis speichern, welches im Feld „Folder for loading modules“ angegeben wurde.
+6. In Burp Suite unter „Extensions“ den Button „Add“ betätigen:
+   - Extension type: Python wählen.
+   - Als Extension file die heruntergeladene .py-Datei auswählen.
+   - Dann Button „Next“ betätigen.
 
-## Setup/Einrichtung
+Die Extension wird nun in die Burp Suite geladen und die GUI des Tools sollte sich aufbauen. Falls Probleme beim Laden bestehen sollten, werden diese unter „Errors“ ausgegeben.
 
-1. **Jython einrichten**:
-   - Laden Sie die [jython.jar](https://www.jython.org/downloads.html) herunter.
-   - Öffnen Sie Burp Suite und gehen Sie zu `Extender` > `Options`.
-   - Fügen Sie die heruntergeladene `jython.jar`-Datei unter "Python Environment" hinzu.
+## Verwendung
+GUI mit Kurzbeschreibung.
 
-2. **Erweiterung herunterladen**:
-   - Laden Sie die neueste Version der Erweiterung von [GitHub](https://github.com/lockenkoepflein/CODIBurp/releases/latest) herunter.
+Nach beispielhafter Konfiguration und Starten des Bruteforce-Prozesses über den „Start“-Button sieht man den aktuellen Fortschritt auf dem Fortschrittsbalken.
 
-3. **Erweiterung hinzufügen**:
-   - Gehen Sie zu `Extender` > `Extensions` und klicken Sie auf `Add`.
-   - Ändern Sie den Erweiterungstyp auf `Python`.
-   - Wählen Sie die heruntergeladene `.py`-Datei und klicken Sie auf `Next`.
+Für den Bruteforce-Prozess können folgende Listen (aber auch andere) verwendet werden:
+- [common_directorynames.txt](https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/refs/heads/main/common_directorynames.txt)
+- [common_filenames.txt](https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/refs/heads/main/common_filenames.txt)
 
-## Verwendung/Usage
+Zu beachten hierbei ist, dass die URLs auf eine Liste verweisen, in welcher sich in jeder neuen Zeile ein Datei- bzw. Verzeichnisname befindet.
 
-1. **Erweiterung starten**:
-   - Nachdem die Erweiterung erfolgreich geladen wurde, sehen Sie eine neue Registerkarte „Directory Bruteforcer“ in Burp Suite.
-   - Geben Sie die Basis-URL für den Bruteforce-Angriff in das Textfeld unter „Configuration“ ein.
+Ist der Bruteforce-Prozess anhand der konfigurierten Listen abgeschlossen, wird der Button „Save Results“ aktiv und es erscheint unter „Progress“ folgende Meldung.
 
-2. **Verzeichnisliste laden**:
-   - Die Verzeichnisliste (SecList) wird beim Start der Erweiterung automatisch im Hintergrund geladen. Sie können den Fortschritt in der Registerkarte „Progress“ verfolgen.
+Beim Wechsel in den Reiter „Results“ werden die gefundenen Dateien und Verzeichnisse aufgelistet. (Hierbei werden nur die Ergebnisse aufgelistet, die die gewünschten Statuscodes in der Antwort erhalten haben).
 
-3. **Bruteforce starten**:
-   - Klicken Sie auf „Start“, um den Bruteforce-Prozess zu beginnen. Die Erweiterung wird die angegebenen Verzeichnisse gegen die Basis-URL testen.
+Wird der Button „Save Results“ betätigt, wird eine .txt-Datei im Verzeichnis angelegt, in dem sich die .py-Datei befindet. Diese enthält die gefundenen Verzeichnisse und Dateien.
 
-4. **Bruteforce stoppen**:
-   - Klicken Sie auf „Stop“, um den Bruteforce-Prozess jederzeit zu stoppen.
-
-5. **Ergebnisse anzeigen**:
-   - Ergebnisse werden in der Registerkarte „Results“ angezeigt und in der Datei `results.txt` gespeichert, die im Verzeichnis der Erweiterung abgelegt wird.
-
-## Anforderungen/Requirements
-
-- [Jython 2.7.0](https://www.jython.org/downloads.html)
-- [Burp Suite Pro v2.1](https://portswigger.net/burp)
-
----
-
-## Setup/Installation
-
-1. **Set up Jython**:
-   - Download the [jython.jar](https://www.jython.org/downloads.html).
-   - Open Burp Suite and go to `Extender` > `Options`.
-   - Add the downloaded `jython.jar` file under "Python Environment".
-
-2. **Download the Extension**:
-   - Download the latest version of the extension from [GitHub](https://github.com/lockenkoepflein/CODIBurp/releases/latest).
-
-3. **Add the Extension**:
-   - Go to `Extender` > `Extensions` and click `Add`.
-   - Change the extension type to `Python`.
-   - Select the downloaded `.py` file and click `Next`.
-
-## Usage
-
-1. **Start the Extension**:
-   - Once the extension is successfully loaded, you will see a new tab named "Directory Bruteforcer" in Burp Suite.
-   - Enter the base URL for the brute force attack in the text field under "Configuration".
-
-2. **Load the Directory List**:
-   - The directory list (SecList) will be loaded in the background when the extension starts. You can track the progress in the "Progress" tab.
-
-3. **Start Brute Force**:
-   - Click "Start" to begin the brute force process. The extension will test the specified directories against the base URL.
-
-4. **Stop Brute Force**:
-   - Click "Stop" to halt the brute force process at any time.
-
-5. **View Results**:
-   - Results will be displayed in the "Results" tab and saved in the `results.txt` file located in the extension's directory.
-
-
-## Code Credits
-A large portion of the base code has been taken from the following sources:<br>Ein großer Teil des Basiscodes stammt aus den folgenden Quellen:
-
-## License/Lizenz
-The project is available under MIT license, see [LICENSE](https://github.com/lockenkoepfein/CODIBurp/LICENSE) file.<br>Das Projekt ist unter der MIT-Lizenz verfügbar, siehe [LICENSE](https://github.com/lockenkoepfein/CODIBurp/LICENSE)-Datei.
+## Lizenz
+Das Projekt ist unter der MIT-Lizenz verfügbar, siehe [LICENSE](https://github.com/lockenkoepflein/CODIBurp/LICENSE)-Datei.
