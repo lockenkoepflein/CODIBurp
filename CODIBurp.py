@@ -288,7 +288,7 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
         try:
             parsed_url = URL(url)
             host = parsed_url.getHost()
-            
+
             if not host:
                 raise ValueError("Invalid host in URL: {}".format(url))
 
@@ -309,18 +309,24 @@ class BurpExtender(IBurpExtender, IExtensionStateListener, IHttpListener):
                 response_info = self._helpers.analyzeResponse(raw_response)
                 status_code = response_info.getStatusCode()
 
-                if status_code in self.selected_status_codes:
-                    result_entry = "{} - {}\n".format(url, status_code)
-                    self.results.append((url, status_code))
-                    update_ui_safe(self.update_results, result_entry)
+                # Basis-URL überprüfen
+                base_url = self._url_text_field.getText().strip()
+                if url.startswith(base_url):
+                    if status_code in self.selected_status_codes:
+                        result_entry = "{} - {}\n".format(url, status_code)
+                        self.results.append((url, status_code))
+                        update_ui_safe(self.update_results, result_entry)
+                    else:
+                        self._logger.debug("Received status code {} for URL: {}".format(status_code, url))
                 else:
-                    self._logger.debug("Received status code {} for URL: {}".format(status_code, url))
+                    self._logger.debug("Ignoring URL not from base URL: {}".format(url))
             else:
                 self._logger.error("Request error for {}: No response received".format(url))
         except Exception as e:
             self._logger.error("Request error for {}: {}".format(url, e))
         finally:
             update_ui_safe(self.increment_progress)
+
 
     def stop_bruteforce(self, event):
         """
