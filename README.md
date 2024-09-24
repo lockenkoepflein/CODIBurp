@@ -22,7 +22,7 @@ Eine Inhaltserkennungs-Erweiterung für Burp Suite – das automatisierte Auffin
 
 5. **CODIBurp.py-Datei aus GitHub-Repository herunterladen:**  
    [CODIBurp/CODIBurp.py at main · lockenkoepflein/CODIBurp · GitHub](https://github.com/lockenkoepflein/CODIBurp/blob/main/CODIBurp.py)  
-   Speichern Sie die Datei im Verzeichnis, das im Feld „Folder for loading modules“ angegeben wurde.
+   Datei in dem Verzeichnis speichern, das im Feld „Folder for loading modules“ angegeben wurde.
 
 6. **In Burp Suite unter „Extensions“ den Button „Add“ betätigen:**  
    ![Screenshot4](images/Bild4.png)
@@ -48,7 +48,7 @@ Für den Bruteforce-Prozess können folgende Listen (aber auch andere) verwendet
 - [common_directorynames.txt](https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/refs/heads/main/common_directorynames.txt)
 - [common_filenames.txt](https://raw.githubusercontent.com/lockenkoepflein/CODIBurp/refs/heads/main/common_filenames.txt)
 
-Zu beachten ist, dass die URLs auf eine Liste verweisen, in der sich in jeder neuen Zeile ein Datei- bzw. Verzeichnisname befindet.
+Zu beachten ist, dass die URLs auf eine Liste verweisen sollen, in der sich in jeder neuen Zeile ein Datei- bzw. Verzeichnisname befindet.
 
 Ist der Bruteforce-Prozess anhand der konfigurierten Listen abgeschlossen, wird der Button „Save Results“ aktiv und es erscheint unter „Progress“ folgende Meldung:  
 ![Screenshot9](images/Bild9.png)
